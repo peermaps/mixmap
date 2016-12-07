@@ -11,7 +11,7 @@ var state = require('smooth-state')({ tmix: 0 })
 function mglobe (p) { return globe([], p) }
 function mflat (p) { return flat([], p) }
 
-var eye = [0,0,2]
+var eye = [0,0,4]
 var camera = (function () {
   var projection = [], view = []
   var space = { globe: [], flat: [] }
@@ -20,9 +20,8 @@ var camera = (function () {
   return regl({
     uniforms: {
       projection: function (context) {
-        //return mat4.ortho(projection, -2, 2, -2, 2, 0.1, 1000)
         var aspect = context.viewportWidth / context.viewportHeight
-        return mat4.perspective(projection, Math.PI/2, aspect, 0.1, 1000)
+        return mat4.perspective(projection, Math.PI/8, aspect, 0.1, 1000)
       },
       view: function (context) {
         globe(space.globe, eye)
@@ -36,7 +35,7 @@ var camera = (function () {
         mix(tmpv0, space.flat, space.globe, tmix)
         mix(tmpv1, surface.flat, surface.globe, tmix)
         return mat4.lookAt(view, tmpv0, tmpv1, up)
-      },
+      }
     }
   })
 })()
