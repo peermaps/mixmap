@@ -50,15 +50,17 @@ function mix (out, a, b, t) {
 
 window.addEventListener('mousemove', function (ev) {
   if (ev.buttons & 1) {
-    eye[0] -= ev.movementX / 100
-    eye[1] += ev.movementY / 100
+    eye[0] = (eye[0] - Math.max(-1, Math.min(1, ev.movementX / 100)))
+      % (Math.PI*2)
+    eye[1] = (eye[1] + Math.max(-1, Math.min(1, ev.movementY / 100)))
+      % Math.PI
   }
 })
 
 window.addEventListener('keydown', function (ev) {
   if (ev.key == 'g') {
     state.set('tmix', {
-      time: 0.2,
+      time: 0.15,
       value: (state.limit('tmix')+1)%2,
       easing: ease
     })
@@ -93,20 +95,34 @@ resl({
 function ready (assets) {
   var draw = {
     ocean: ocean(regl),
-    land: land(regl, assets.land)
+    land0: land(regl, assets.land),
+    land1: land(regl, {
+      positions: assets.land.positions.map(function (p) {
+        return [p[0]+Math.PI*2,p[1],p[2]]
+      }),
+      cells: assets.land.cells
+    }),
+    land2: land(regl, {
+      positions: assets.land.positions.map(function (p) {
+        return [p[0]-Math.PI*2,p[1],p[2]]
+      }),
+      cells: assets.land.cells
+    })
   }
   regl.frame(function () {
     regl.clear({ color: [0.1,0.1,0.1,1], depth: true })
     camera(function () {
       draw.ocean()
-      draw.land()
+      draw.land0()
+      draw.land1()
+      draw.land2()
     })
   })
 }
 
 function ocean (regl) {
   var dlon = Math.PI*2/90, dlat = Math.PI/90
-  var mesh = grid(90,90,[-Math.PI,-Math.PI/2],[dlon,0],[0,dlat]) // lonlat
+  var mesh = grid(90*3,90,[-Math.PI*3,-Math.PI/2],[dlon,0],[0,dlat]) // lonlat
   return regl({
     frag: `
       precision mediump float;
