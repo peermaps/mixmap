@@ -21,7 +21,7 @@ var camera = (function () {
     uniforms: {
       projection: function (context) {
         var aspect = context.viewportWidth / context.viewportHeight
-        return mat4.perspective(projection, Math.PI/8, aspect, 0.1, 1000)
+        return mat4.perspective(projection, Math.PI/8, aspect, 0.00005, 100)
       },
       view: function (context) {
         globe(space.globe, eye)
@@ -50,11 +50,15 @@ function mix (out, a, b, t) {
 
 window.addEventListener('mousemove', function (ev) {
   if (ev.buttons & 1) {
-    eye[0] = (eye[0] - Math.max(-1, Math.min(1, ev.movementX / 100)))
-      % (Math.PI*2)
-    eye[1] = (eye[1] + Math.max(-1, Math.min(1, ev.movementY / 100)))
-      % Math.PI
+    var dx = ev.movementX / 800 * eye[2]
+    var dy = ev.movementY / 800 * eye[2]
+    eye[0] = (eye[0] - Math.max(-1, Math.min(1, dx))) % (Math.PI*2)
+    eye[1] = (eye[1] + Math.max(-1, Math.min(1, dy))) % Math.PI
   }
+})
+
+window.addEventListener('mousewheel', function (ev) {
+  eye[2] = Math.min(10,Math.max(0.0001,eye[2] * Math.pow(1.1, ev.deltaY/50)))
 })
 
 window.addEventListener('keydown', function (ev) {
