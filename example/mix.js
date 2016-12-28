@@ -1,72 +1,54 @@
 var regl = require('regl')()
 var resl = require('resl')
-var icosphere = require('icosphere')
-var mat4 = require('gl-mat4')
-var vec3 = require('gl-vec3')
 var grid = require('grid-mesh')
 var sin = Math.sin, cos = Math.cos
-var ease = require('eases/linear')
-var state = require('smooth-state')({ tmix: 0 })
 
-function mglobe (p) { return globe([], p) }
-function mflat (p) { return flat([], p) }
-
-var eye = [0,0,4]
-var camera = (function () {
-  var projection = [], view = []
-  var space = { globe: [], flat: [] }
-  var surface = { globe: [], flat: [] }
-  var tmpv0 = [], tmpv1 = [], up = [0,1,0]
-  return regl({
-    uniforms: {
-      projection: function (context) {
-        var aspect = context.viewportWidth / context.viewportHeight
-        return mat4.perspective(projection, Math.PI/8, aspect, 0.00005, 100)
-      },
-      view: function (context) {
-        globe(space.globe, eye)
-        flat(space.flat, eye)
-        vec3.copy(tmpv0, eye)
-        tmpv0[2] = 0
-        globe(surface.globe, tmpv0)
-        flat(surface.flat, tmpv0)
-
-        var tmix = state.get('tmix', context.time)
-        mix(tmpv0, space.flat, space.globe, tmix)
-        mix(tmpv1, surface.flat, surface.globe, tmix)
-        return mat4.lookAt(view, tmpv0, tmpv1, up)
-      }
-    }
-  })
-})()
-
-function mix (out, a, b, t) {
-  t = Math.max(0,Math.min(1,t))
-  out[0] = a[0] * (1-t) + b[0] * t
-  out[1] = a[1] * (1-t) + b[1] * t
-  out[2] = a[2] * (1-t) + b[2] * t
-  return out
-}
+var mix = require('../')()
+var camera = regl({
+  uniforms: {
+    projection: mix.tie('projection'),
+    view: mix.tie('view')
+  }
+})
 
 window.addEventListener('mousemove', function (ev) {
   if (ev.buttons & 1) {
+    var eye = mix.get('eye')
     var dx = ev.movementX / 800 * eye[2]
     var dy = ev.movementY / 800 * eye[2]
-    eye[0] = (eye[0] - Math.max(-1, Math.min(1, dx))) % (Math.PI*2)
-    eye[1] = (eye[1] + Math.max(-1, Math.min(1, dy))) % Math.PI
+    mix.set('eye', {
+      time: 0.1,
+      value: [
+        (eye[0] - Math.max(-1, Math.min(1, dx))) % (Math.PI*2),
+        (eye[1] + Math.max(-1, Math.min(1, dy))) % Math.PI,
+        eye[2]
+      ]
+    })
   }
 })
 
 window.addEventListener('mousewheel', function (ev) {
-  eye[2] = Math.min(10,Math.max(0.0001,eye[2] * Math.pow(1.1, ev.deltaY/50)))
+  var eye = mix.get('eye')
+  mix.set('eye', {
+    time: 100,
+    value: [
+      eye[0],
+      eye[1],
+      Math.min(10,Math.max(0.0001,eye[2] * Math.pow(1.1, ev.deltaY/50)))
+    ]
+  })
 })
 
 window.addEventListener('keydown', function (ev) {
   if (ev.key == 'g') {
-    state.set('tmix', {
+    mix.set('project', {
       time: 0.15,
-      value: (state.limit('tmix')+1)%2,
-      easing: ease
+      value: globe
+    })
+  } else if (ev.key === 'f') {
+    mix.set('project', {
+      time: 0.15,
+      value: flat
     })
   }
 })
@@ -137,18 +119,18 @@ function ocean (regl) {
     vert: `
       precision mediump float;
       uniform mat4 projection, view;
-      uniform float tmix;
+      uniform float projmix;
       attribute vec3 position0, position1;
       void main () {
-        vec3 p = mix(position0, position1, tmix);
+        vec3 p = mix(position0, position1, projmix);
         gl_Position = projection * view * vec4(p,1);
       }
     `,
     attributes: {
-      position0: mesh.positions.map(mflat),
-      position1: mesh.positions.map(mglobe)
+      position0: mix.positions(0, mesh.positions),
+      position1: mix.positions(1, mesh.positions)
     },
-    uniforms: { tmix: state.tie('tmix') },
+    uniforms: { projmix: mix.tie('projmix') },
     elements: mesh.cells,
     depth: { enable: false, mask: false }
   })
@@ -166,18 +148,18 @@ function land (regl, mesh) {
     vert: `
       precision mediump float;
       uniform mat4 projection, view, coords;
-      uniform float tmix;
+      uniform float projmix;
       attribute vec3 position0, position1;
       void main () {
-        vec3 p = mix(position0, position1, tmix);
+        vec3 p = mix(position0, position1, projmix);
         gl_Position = projection * view * vec4(p,1);
       }
     `,
     attributes: {
-      position0: mesh.positions.map(mflat),
-      position1: mesh.positions.map(mglobe)
+      position0: mix.positions(0, mesh.positions),
+      position1: mix.positions(1, mesh.positions)
     },
-    uniforms: { tmix: state.tie('tmix') },
+    uniforms: { projmix: mix.tie('projmix') },
     elements: mesh.cells,
     cull: { enable: true }
   })
