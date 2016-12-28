@@ -3,13 +3,16 @@ var resl = require('resl')
 var grid = require('grid-mesh')
 var sin = Math.sin, cos = Math.cos
 
-var mix = require('../')()
+var mix = require('../')({
+  projectfn: globe
+})
 var camera = regl({
   uniforms: {
     projection: mix.tie('projection'),
     view: mix.tie('view')
   }
 })
+window.mix = mix
 
 window.addEventListener('mousemove', function (ev) {
   if (ev.buttons & 1) {
@@ -19,7 +22,7 @@ window.addEventListener('mousemove', function (ev) {
     mix.set('eye', {
       time: 0.1,
       value: [
-        (eye[0] - Math.max(-1, Math.min(1, dx))) % (Math.PI*2),
+        (eye[0] - Math.max(-1, Math.min(1, dx))),
         (eye[1] + Math.max(-1, Math.min(1, dy))) % Math.PI,
         eye[2]
       ]
@@ -30,7 +33,7 @@ window.addEventListener('mousemove', function (ev) {
 window.addEventListener('mousewheel', function (ev) {
   var eye = mix.get('eye')
   mix.set('eye', {
-    time: 100,
+    time: 0.1,
     value: [
       eye[0],
       eye[1],
@@ -41,12 +44,12 @@ window.addEventListener('mousewheel', function (ev) {
 
 window.addEventListener('keydown', function (ev) {
   if (ev.key == 'g') {
-    mix.set('project', {
+    mix.set('projectfn', {
       time: 0.15,
       value: globe
     })
   } else if (ev.key === 'f') {
-    mix.set('project', {
+    mix.set('projectfn', {
       time: 0.15,
       value: flat
     })
@@ -55,15 +58,18 @@ window.addEventListener('keydown', function (ev) {
 
 function globe (out, p) {
   var h = (p[2]||0) + 1
-  out[0] = -cos(p[0]) * cos(p[1]) * h
-  out[1] = sin(p[1]) * h
-  out[2] = sin(p[0]) * cos(p[1]) * h
+  var lon = p[0] % (2*Math.PI), lat = p[1]
+  out[0] = -cos(lon) * cos(lat) * h
+  out[1] = sin(lat) * h
+  out[2] = sin(lon) * cos(lat) * h
   return out
 }
 function flat (out, p) {
-  out[0] = -p[2] || 0
-  out[1] = p[1]
-  out[2] = p[0]
+  var h = -p[2] || 0
+  var lon = p[0] % (2*Math.PI), lat = p[1]
+  out[0] = h
+  out[1] = lat
+  out[2] = lon
   return out
 }
 
@@ -82,6 +88,7 @@ function ready (assets) {
   var draw = {
     ocean: ocean(regl),
     land0: land(regl, assets.land),
+    /*
     land1: land(regl, {
       positions: assets.land.positions.map(function (p) {
         return [p[0]+Math.PI*2,p[1],p[2]]
@@ -94,14 +101,15 @@ function ready (assets) {
       }),
       cells: assets.land.cells
     })
+    */
   }
   regl.frame(function () {
     regl.clear({ color: [0.1,0.1,0.1,1], depth: true })
     camera(function () {
       draw.ocean()
       draw.land0()
-      draw.land1()
-      draw.land2()
+      //draw.land1()
+      //draw.land2()
     })
   })
 }

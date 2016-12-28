@@ -19,16 +19,16 @@ function Mix (opts) {
     eye: [0,0,4],
     projmix: 0
   })
-  this._prevProjectFn = opts.projectfn || globe
-  this._projectFn = opts.projectfn || globe
+  this._projectFn0 = opts.projectfn || globe
+  this._projectFn1 = opts.projectfn || globe
   this._view = []
   this._projection = []
 }
 
 Mix.prototype.project = function (out, p, c) {
   var pm = this.state.get('projmix', c)
-  this._prevProjectFn(tmp0, p)
-  this._projectFn(tmp1, p)
+  this._projectFn0(tmp0, p)
+  this._projectFn1(tmp1, p)
   return mix(out, tmp0, tmp1, pm)
 }
 
@@ -36,18 +36,17 @@ Mix.prototype.positions = function (n, positions) {
   var self = this
   var len = positions.length
   var mapped = new Array(len)
-  var fn = null
-  if (n === 0) fn = self._prevProjectFn
-  else if (n === 1) fn = self._projectFn
-  else throw new Error('n must be 0 or 1, received: ' + n)
-
   for (var i = 0; i < len; i++) mapped[i] = [0,0,0]
   update()
   this.on('update-projectfn', update)
-  //return function () { return mapped }
   return mapped
+  //return function () { return mapped }
 
   function update () {
+    var fn = null
+    if (n === 0) fn = self._projectFn0
+    else if (n === 1) fn = self._projectFn1
+    else throw new Error('n must be 0 or 1, received: ' + n)
     for (var i = 0; i < len; i++) {
       fn(mapped[i], positions[i])
     }
@@ -70,7 +69,8 @@ Mix.prototype.get = function (key, c) {
     tmp3[1] = eye[1]
     tmp3[1][2] = 0 // ground point
     this.project(tmp3, tmp3, c)
-    return mat4.lookAt(this._view, tmp3, tmp2, up)
+    mat4.lookAt(this._view, tmp2, tmp3, up)
+    return this._view
   } else if (key === 'projection') {
     var aspect = c.aspect || (c.viewportWidth && c.viewportHeight
       && c.viewportWidth / c.viewportHeight) || 1
@@ -80,13 +80,17 @@ Mix.prototype.get = function (key, c) {
 
 Mix.prototype.set = function (key, c) {
   if (key === 'projectfn') {
+    var n = (this.state.limit('projmix')+1)%2
     this.state.set('projmix', {
       time: defined(c.time, c),
-      value: (this.state.limit('projmix')+1)%2,
+      value: n,
       easing: c.easing
     })
-    this._prevProjectFn = this._projectFn
-    this._projectFn = c.value
+    if (n === 0) {
+      this._projectFn0 = c.value
+    } else  if (n === 1) {
+      this._projectFn1 = c.value
+    }
     this.emit('update-projectfn')
   } else this.state.set(key, c)
 }
