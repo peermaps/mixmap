@@ -3,16 +3,41 @@ var resl = require('resl')
 var grid = require('grid-mesh')
 var sin = Math.sin, cos = Math.cos
 
-var mix = require('../')({
-  projectfn: globe
-})
+var glsl = require('glslify')
+var proj = require('glsl-proj4')
+var dmerge = require('deep-extend')
+
+function geom (obj) {
+  var p = proj('+proj=geocent +datum=WGS84 +units=m +no_defs')
+  return dmerge(obj, {
+    uniforms: p.members('proj'),
+    vert: glsl`
+      precision mediump float;
+      #pragma glslify: proj_t = require('glsl-proj4/geocent/t')
+      #pragma glslify: forward = require('glsl-proj4/geocent/forward')
+      #pragma glslify: lookAt = require('glsl-look-at')
+      uniform mat4 projection;
+      uniform vec3 eye;
+      uniform proj_t proj;
+      attribute vec2 position;
+      void main () {
+        vec3 sky = forward(proj,eye);
+        vec3 ground = forward(proj,vec3(eye.xy,0));
+        mat3 view = lookAt(sky, ground, 0.0);
+        vec3 p = view * forward(proj,vec3(vec2(position.y,-position.x),0));
+        gl_Position = projection * vec4(p,1);
+      }
+    `
+  })
+}
+
+var mix = require('../')()
 var camera = regl({
   uniforms: {
     projection: mix.tie('projection'),
-    view: mix.tie('view')
+    eye: mix.tie('eye')
   }
 })
-window.mix = mix
 
 window.addEventListener('mousemove', function (ev) {
   if (ev.buttons & 1) {
@@ -55,23 +80,6 @@ window.addEventListener('keydown', function (ev) {
     })
   }
 })
-
-function globe (out, p) {
-  var h = (p[2]||0) + 1
-  var lon = p[0] % (2*Math.PI), lat = p[1]
-  out[0] = -cos(lon) * cos(lat) * h
-  out[1] = sin(lat) * h
-  out[2] = sin(lon) * cos(lat) * h
-  return out
-}
-function flat (out, p) {
-  var h = -p[2] || 0
-  var lon = p[0] % (2*Math.PI), lat = p[1]
-  out[0] = h
-  out[1] = lat
-  out[2] = lon
-  return out
-}
 
 resl({
   manifest: {
@@ -117,58 +125,34 @@ function ready (assets) {
 function ocean (regl) {
   var dlon = Math.PI*2/90, dlat = Math.PI/90
   var mesh = grid(90*3,90,[-Math.PI*3,-Math.PI/2],[dlon,0],[0,dlat]) // lonlat
-  return regl({
+  return regl(geom({
     frag: `
       precision mediump float;
       void main () {
         gl_FragColor = vec4(0.3,0.3,0.3,1);
       }
     `,
-    vert: `
-      precision mediump float;
-      uniform mat4 projection, view;
-      uniform float projmix;
-      attribute vec3 position0, position1;
-      void main () {
-        vec3 p = mix(position0, position1, projmix);
-        gl_Position = projection * view * vec4(p,1);
-      }
-    `,
     attributes: {
-      position0: mix.positions(0, mesh.positions),
-      position1: mix.positions(1, mesh.positions)
+      position: mesh.positions
     },
-    uniforms: { projmix: mix.tie('projmix') },
     elements: mesh.cells,
     depth: { enable: false, mask: false }
-  })
+  }))
 }
 
 function land (regl, mesh) {
   var coords = []
-  return regl({
+  return regl(geom({
     frag: `
       precision mediump float;
       void main () {
         gl_FragColor = vec4(0.5,0.5,0.5,1);
       }
     `,
-    vert: `
-      precision mediump float;
-      uniform mat4 projection, view, coords;
-      uniform float projmix;
-      attribute vec3 position0, position1;
-      void main () {
-        vec3 p = mix(position0, position1, projmix);
-        gl_Position = projection * view * vec4(p,1);
-      }
-    `,
     attributes: {
-      position0: mix.positions(0, mesh.positions),
-      position1: mix.positions(1, mesh.positions)
+      position: mesh.positions
     },
-    uniforms: { projmix: mix.tie('projmix') },
     elements: mesh.cells,
     cull: { enable: true }
-  })
+  }))
 }
