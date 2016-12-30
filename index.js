@@ -17,7 +17,7 @@ function Mix (opts) {
   EventEmitter.call(this)
   if (!opts) opts = {}
   this.state = smooth({
-    eye: [0,0,1]
+    eye: [0,0,R*4]
   })
   this._projection = []
 }

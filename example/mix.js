@@ -23,9 +23,10 @@ function geom (obj) {
       void main () {
         vec3 sky = forward(proj,eye);
         vec3 ground = forward(proj,vec3(eye.xy,0));
-        mat3 view = lookAt(sky, ground, 0.0);
-        vec3 p = view * forward(proj,vec3(vec2(position.y,-position.x),0));
-        gl_Position = projection * vec4(p,1);
+        mat4 view = mat4(lookAt(ground, sky, 0.0));
+        vec2 lonlat = vec2(position.y,position.x);
+        vec3 p = forward(proj,vec3(lonlat,0));
+        gl_Position = projection * view * vec4(p,1);
       }
     `
   })
@@ -56,29 +57,16 @@ window.addEventListener('mousemove', function (ev) {
 })
 
 window.addEventListener('mousewheel', function (ev) {
+  ev.preventDefault()
   var eye = mix.get('eye')
   mix.set('eye', {
     time: 0.1,
     value: [
       eye[0],
       eye[1],
-      Math.min(10,Math.max(0.0001,eye[2] * Math.pow(1.1, ev.deltaY/50)))
+      Math.max(1,eye[2]*Math.pow(1.1, ev.deltaY/50))
     ]
   })
-})
-
-window.addEventListener('keydown', function (ev) {
-  if (ev.key == 'g') {
-    mix.set('projectfn', {
-      time: 0.15,
-      value: globe
-    })
-  } else if (ev.key === 'f') {
-    mix.set('projectfn', {
-      time: 0.15,
-      value: flat
-    })
-  }
 })
 
 resl({
@@ -112,7 +100,7 @@ function ready (assets) {
     */
   }
   regl.frame(function () {
-    regl.clear({ color: [0.1,0.1,0.1,1], depth: true })
+    regl.clear({ color: [0.5,0.1,0.1,1], depth: true })
     camera(function () {
       draw.ocean()
       draw.land0()
@@ -123,8 +111,8 @@ function ready (assets) {
 }
 
 function ocean (regl) {
-  var dlon = Math.PI*2/90, dlat = Math.PI/90
-  var mesh = grid(90*3,90,[-Math.PI*3,-Math.PI/2],[dlon,0],[0,dlat]) // lonlat
+  var dlon = 360/90, dlat = 180/90
+  var mesh = grid(90*2,90,[-180,-90],[dlon,0],[0,dlat]) // lonlat
   return regl(geom({
     frag: `
       precision mediump float;
