@@ -23,8 +23,8 @@ function geom (obj) {
       void main () {
         vec3 sky = forward(proj,eye);
         vec3 ground = forward(proj,vec3(eye.xy,0));
-        mat4 view = mat4(lookAt(ground, sky, 0.0));
-        vec2 lonlat = vec2(position.y,position.x);
+        mat4 view = mat4(lookAt(sky, ground, 0.0));
+        vec2 lonlat = position.xy;
         vec3 p = forward(proj,vec3(lonlat,0));
         gl_Position = projection * view * vec4(p,1);
       }
@@ -39,17 +39,18 @@ var camera = regl({
     eye: mix.tie('eye')
   }
 })
+var R = 6378137
 
 window.addEventListener('mousemove', function (ev) {
   if (ev.buttons & 1) {
     var eye = mix.get('eye')
-    var dx = ev.movementX / 800 * eye[2]
-    var dy = ev.movementY / 800 * eye[2]
+    var dx = ev.movementX / 8 * (eye[2] - 1)
+    var dy = ev.movementY / 8 * (eye[2] - 1)
     mix.set('eye', {
       time: 0.1,
       value: [
-        (eye[0] - Math.max(-1, Math.min(1, dx))),
-        (eye[1] + Math.max(-1, Math.min(1, dy))) % Math.PI,
+        eye[0] - dy,
+        eye[1] + dx,
         eye[2]
       ]
     })
@@ -64,9 +65,10 @@ window.addEventListener('mousewheel', function (ev) {
     value: [
       eye[0],
       eye[1],
-      Math.max(1,eye[2]*Math.pow(1.1, ev.deltaY/50))
+      eye[2] - ev.deltaY*0.01
     ]
   })
+  console.log(eye[2])
 })
 
 resl({

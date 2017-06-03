@@ -34,7 +34,7 @@ Mix.prototype.get = function (key, c) {
   if (key === 'projection') {
     var aspect = c.aspect || (c.viewportWidth && c.viewportHeight
       && c.viewportWidth / c.viewportHeight) || 1
-    return mat4.perspective(this._projection, Math.PI/8, aspect, 0.00005*R, 100*R)
+    return mat4.perspective(this._projection, Math.PI/8, aspect, 0.0005, 100)
   } else return this.state.get(key,c)
 }
 
