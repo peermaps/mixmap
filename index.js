@@ -1,43 +1,72 @@
-var mat4 = require('gl-mat4')
-var smooth = require('smooth-state')
-var defined = require('defined')
-var inherits = require('inherits')
+var html = require('bel')
+var rcom = require('regl-component')
 var EventEmitter = require('events').EventEmitter
-var sin = Math.sin, cos = Math.cos
-var R = 6378137
-
-var up = [0,1,0]
-var tmp0 = [0,0,0], tmp1 = [0,0,0], tmp2 = [0,0,0], tmp3 = [0,0,0]
-
-inherits(Mix, EventEmitter)
-module.exports = Mix
-
-function Mix (opts) {
-  if (!(this instanceof Mix)) return new Mix(opts)
-  EventEmitter.call(this)
-  if (!opts) opts = {}
-  this.state = smooth({
-    eye: [0,0,R*4]
-  })
-  this._projection = []
-}
-
-Mix.prototype.tie = function (key) {
-  var self = this
-  return function (c) {
-    return self.get(key, c)
+var Nano = require('nanocomponent')
+var css = require('sheetify')
+var style = css`
+  :host {
+    background-color: black;
   }
+`
+
+module.exports = MixMap
+
+function MixMap (regl, opts) {
+  if (!(this instanceof MixMap)) return new MixMap(regl, opts)
+  Nano.call(this)
+  if (!opts) opts = {}
+  this._rcom = rcom(regl)
+}
+MixMap.prototype = Object.create(Nano.prototype)
+
+MixMap.prototype._update = function () { return false }
+
+MixMap.prototype._render = function (props) {
+  return this._rcom.render(props)
 }
 
-Mix.prototype.get = function (key, c) {
-  if (c === undefined) c = this.state._time || 0
-  if (key === 'projection') {
-    var aspect = c.aspect || (c.viewportWidth && c.viewportHeight
-      && c.viewportWidth / c.viewportHeight) || 1
-    return mat4.perspective(this._projection, Math.PI/8, aspect, 0.0005, 100)
-  } else return this.state.get(key,c)
+MixMap.prototype.create = function () {
+  return new Map(this._rcom.create())
 }
 
-Mix.prototype.set = function (key, c) {
-  this.state.set(key, c)
+function Map (rcom) {
+  if (!(this instanceof Map)) return new Map(rcom)
+  this._rcom = rcom
+  this._regl = rcom.regl
+  this._draw = {}
+  var mesh = require('icosphere')(3)
+  this._draw.shapes = this._regl({
+    frag: `
+      precision highp float;
+      void main () {
+        gl_FragColor = vec4(1,0,0,1);
+      }
+    `,
+    vert: `
+      precision highp float;
+      attribute vec3 position;
+      void main () {
+        gl_Position = vec4(position.xy*0.5,0,1);
+      }
+    `,
+    attributes: {
+      position: mesh.positions
+    },
+    elements: mesh.cells
+  })
+}
+
+Map.prototype.draw = function () {
+  this._regl.clear({ color: [0,1,0,1], depth: true })
+  this._draw.shapes()
+}
+
+Map.prototype.render = function (props) {
+  var cstyle = `
+    width: ${props.width}px;
+    height: ${props.height}px;
+  `
+  return html`<div class=${style} style=${cstyle}>
+    ${this._rcom.render(props)}
+  </div>`
 }
