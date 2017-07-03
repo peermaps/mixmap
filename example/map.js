@@ -1,12 +1,52 @@
 var mixmap = require('../')(require('regl'))
 var map = mixmap.create()
-var mesh = require('./mesh.json')
+var glsl = require('glslify')
+
+var countries = require('./mesh.json')
+var borders = require('./borders.json')
+/*
 map.add({
   triangle: {
+    frag: `
+      precision highp float;
+      void main () {
+        gl_FragColor = vec4(0,1,0,1);
+      }
+    `,
     attributes: {
-      position: mesh.triangle.positions
+      position: countries.triangle.positions
     },
-    elements: mesh.triangle.cells
+    elements: countries.triangle.cells
+  }
+})
+*/
+map.add({
+  triangle: {
+    frag: glsl`
+      precision highp float;
+      #pragma glslify: hsl2rgb = require('glsl-hsl2rgb')
+      #pragma glslify: colormap = require('glsl-colormap/bathymetry')
+      varying float vcolor;
+      void main () {
+        //gl_FragColor = vec4(hsl2rgb(vcolor/5.0,0.4,0.5),1);
+        gl_FragColor = colormap(vcolor/5.0);
+      }
+    `,
+    vert: `
+      precision highp float;
+      attribute vec2 position;
+      attribute float color;
+      varying float vcolor;
+      void main () {
+        vcolor = color;
+        gl_Position = vec4(position.x/180.0,position.y/90.0,0,1);
+      }
+    `,
+    attributes: {
+      position: countries.triangle.positions,
+      color: countries.triangle.colors
+    },
+    elements: countries.triangle.cells
   }
 })
 map.draw()

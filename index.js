@@ -3,9 +3,17 @@ var rcom = require('regl-component')
 var EventEmitter = require('events').EventEmitter
 var Nano = require('nanocomponent')
 var css = require('sheetify')
+var bboxToZoom = require('./lib/bbox-to-zoom.js')
+var zoomToBbox = require('./lib/zoom-to-bbox.js')
+
 var style = css`
   :host {
     background-color: black;
+  }
+  .controls button {
+    min-width: 1.5em;
+    padding: 0.1em;
+    font-size: 1.1em;
   }
 `
 
@@ -34,6 +42,7 @@ function Map (rcom) {
   this._rcom = rcom
   this._regl = rcom.regl
   this._draw = []
+  this._bbox = [-180,-90,180,90]
 }
 
 Map.prototype.add = function (opts) {
@@ -77,8 +86,7 @@ Map.prototype.add = function (opts) {
         position: opts.linestrip.positions,
         normal: opts.linestrip.normals
       },
-      elements: opts.linestrip.elements,
-      //count: opts.linestrip.count
+      elements: opts.linestrip.elements
     }))
   }
   if (opts.point) {
@@ -88,17 +96,39 @@ Map.prototype.add = function (opts) {
 
 Map.prototype.draw = function () {
   this._regl.clear({ color: [1,1,1,1], depth: true })
+  var props = { bbox: this._bbox }
   for (var i = 0; i < this._draw.length; i++) {
-    this._draw[i]()
+    this._draw[i](props)
   }
 }
 
 Map.prototype.render = function (props) {
+  var self = this
   var cstyle = `
     width: ${props.width}px;
     height: ${props.height}px;
   `
   return html`<div class=${style} style=${cstyle}>
+    <div class="controls">
+      <button onclick=${zoomIn}>+</button>
+      <button onclick=${zoomOut}>-</button>
+    </div>
     ${this._rcom.render(props)}
   </div>`
+  function zoomIn () {
+    self.setZoom(self.getZoom()+1)
+  }
+  function zoomOut () {
+    self.setZoom(self.getZoom()-1)
+  }
+}
+
+Map.prototype.getZoom = function () {
+  return bboxToZoom(this._bbox)
+}
+
+Map.prototype.setZoom = function (n) {
+  zoomToBbox(this._bbox, Math.max(Math.min(n,21),1))
+  console.log(this._bbox, this.getZoom())
+  this.draw()
 }
