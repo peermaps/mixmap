@@ -58,10 +58,17 @@ Map.prototype.add = function (opts) {
       vert: `
         precision highp float;
         attribute vec2 position;
+        uniform vec4 bbox;
         void main () {
-          gl_Position = vec4(position.x/180.0,position.y/90.0,0,1);
+          gl_Position = vec4(
+            (position.x - bbox.x) / (bbox.z - bbox.x) * 2.0 - 1.0,
+            (position.y - bbox.y) / (bbox.w - bbox.y) * 2.0 - 1.0,
+            0, 1);
         }
-      `
+      `,
+      uniforms: Object.assign(opts.triangle.uniforms || {}, {
+        bbox: this._regl.prop('bbox')
+      })
     }, opts.triangle)))
   }
   if (opts.linestrip) {
@@ -75,13 +82,17 @@ Map.prototype.add = function (opts) {
       vert: opts.linestrip.vert || `
         precision highp float;
         attribute vec2 position, normal;
+        uniform vec4 bbox;
         void main () {
           gl_Position = vec4(
-            position.x/180.0 + normal.x * 0.01,
-            position.y/90.0 + normal.y * 0.01,
-            0,1);
+            (position.x - bbox.x) / (bbox.z - bbox.x) * 2.0 - 1.0,
+            (position.y - bbox.y) / (bbox.w - bbox.y) * 2.0 - 1.0,
+            0, 1);
         }
       `,
+      uniforms: Object.assign(opts.linestrip.uniforms || {}, {
+        bbox: this._regl.prop('bbox')
+      }),
       attributes: {
         position: opts.linestrip.positions,
         normal: opts.linestrip.normals
@@ -129,6 +140,5 @@ Map.prototype.getZoom = function () {
 
 Map.prototype.setZoom = function (n) {
   zoomToBbox(this._bbox, Math.max(Math.min(n,21),1))
-  console.log(this._bbox, this.getZoom())
   this.draw()
 }
