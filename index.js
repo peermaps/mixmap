@@ -24,6 +24,7 @@ function MixMap (regl, opts) {
   Nano.call(this)
   if (!opts) opts = {}
   this._rcom = rcom(regl)
+  this._maps = []
 }
 MixMap.prototype = Object.create(Nano.prototype)
 
@@ -32,9 +33,16 @@ MixMap.prototype._update = function () { return false }
 MixMap.prototype._render = function (props) {
   return this._rcom.render(props)
 }
+MixMap.prototype.setMouse = function (ev) {
+  for (var i = 0; i < this._maps.length; i++) {
+    this._maps[i]._setMouse(ev)
+  }
+}
 
 MixMap.prototype.create = function (opts) {
-  return new Map(this._rcom.create(), opts)
+  var m = new Map(this._rcom.create(), opts)
+  this._maps.push(m)
+  return m
 }
 
 function Map (rcom) {
@@ -43,6 +51,8 @@ function Map (rcom) {
   this._regl = rcom.regl
   this._draw = []
   this._bbox = [-180,-90,180,90]
+  this._mouse = null
+  this._size = null
 }
 
 Map.prototype.add = function (opts) {
@@ -113,23 +123,77 @@ Map.prototype.draw = function () {
   }
 }
 
+Map.prototype._setMouse = function (ev) {
+  var self = this
+  self._mousecoords = ev
+  if (self._mouseIdle) return
+  self._mouseIdle = window.requestIdleCallback(function () {
+    ev = self._mousecoords
+    var x = ev.offsetX
+    var y = ev.offsetY
+    var b = ev.buttons & 1
+    if (!self._mouse) {
+      self._mouse = [0,0]
+    } else if (b && self._size) {
+      self.move(
+        (self._mouse[0]-x)/self._size[0],
+        (self._mouse[1]-y)/self._size[1]
+      )
+    }
+    self._mouse[0] = x
+    self._mouse[1] = y
+    self._mouseIdle = null
+  })
+}
+
+Map.prototype.move = function (dx,dy) {
+  var self = this
+  var w = self._bbox[2] - self._bbox[0]
+  var h = self._bbox[3] - self._bbox[1]
+  self._bbox[0] += dx*w
+  self._bbox[1] -= dy*h
+  self._bbox[2] += dx*w
+  self._bbox[3] -= dy*h
+  if (!self._moveTimeout) {
+    self._moveTimeout = setTimeout(function () {
+      self.draw()
+      self._moveTimeout = null
+    }, 50)
+  }
+}
+
 Map.prototype.render = function (props) {
   var self = this
   var cstyle = `
     width: ${props.width}px;
     height: ${props.height}px;
   `
+  if (!this._size) this._size = [0,0]
+  this._size[0] = props.width
+  this._size[1] = props.height
   return html`<div class=${style} style=${cstyle}>
-    <div class="controls">
+    <div class="controls" onmousedown=${mouseDown} onmouseup=${mouseUp}
+    onmouseout=${mouseOut}>
       <button onclick=${zoomIn}>+</button>
       <button onclick=${zoomOut}>-</button>
     </div>
     ${this._rcom.render(props)}
   </div>`
-  function zoomIn () {
+  function mouseOut (ev) {
+    self._setMouse(ev)
+  }
+  function mouseDown (ev) {
+    self._setMouse(ev)
+  }
+  function mouseUp (ev) {
+    self._setMouse(ev)
+  }
+  function zoomIn (ev) {
+    ev.stopPropagation()
     self.setZoom(self.getZoom()+1)
   }
-  function zoomOut () {
+  function zoomOut (ev) {
+    ev.stopPropagation()
     self.setZoom(self.getZoom()-1)
   }
 }

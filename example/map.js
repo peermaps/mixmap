@@ -64,6 +64,9 @@ app.use(function (state, emitter) {
     setSize()
     emitter.emit('render')
   })
+  window.addEventListener('mousemove', function (ev) {
+    mixmap.setMouse(ev)
+  })
   function setSize () {
     state.width = Math.min(window.innerWidth-50,600)
     state.height = Math.min(window.innerHeight-50,400)
