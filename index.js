@@ -15,11 +15,6 @@ var style = css`
     -ms-user-select: none;
     user-select: none;
   }
-  .controls button {
-    min-width: 1.5em;
-    padding: 0.1em;
-    font-size: 1.1em;
-  }
 `
 
 module.exports = MixMap
@@ -29,7 +24,7 @@ function MixMap (regl, opts) {
   if (!(self instanceof MixMap)) return new MixMap(regl, opts)
   Nano.call(self)
   if (!opts) opts = {}
-  self._rcom = rcom(regl)
+  self._rcom = rcom(regl, opts)
   self._maps = []
   window.addEventListener('resize', function () {
     window.requestAnimationFrame(function () {
@@ -89,6 +84,7 @@ Map.prototype.add = function (opts) {
       offset: this._regl.prop('offset')
     })
   }, opts)))
+  this.draw()
 }
 
 Map.prototype.draw = function () {
@@ -159,26 +155,12 @@ Map.prototype.render = function (props) {
   this._size[1] = props.height
   this.draw()
   return html`<div class=${style} style=${cstyle}>
-    <div class="controls">
-      <button onclick=${zoomIn}>+</button>
-      <button onclick=${zoomOut}>-</button>
-    </div>
     <div onmouseover=${move} onmouseout=${move}
     onmousemove=${move} onmousedown=${move} onmouseup=${move}>
       ${this._rcom.render(props)}
     </div>
   </div>`
-  function move (ev) {
-    self._setMouse(ev)
-  }
-  function zoomIn (ev) {
-    ev.stopPropagation()
-    self.setZoom(self.getZoom()+1)
-  }
-  function zoomOut (ev) {
-    ev.stopPropagation()
-    self.setZoom(self.getZoom()-1)
-  }
+  function move (ev) { self._setMouse(ev) }
 }
 
 Map.prototype.getZoom = function () {
