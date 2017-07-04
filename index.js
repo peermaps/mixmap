@@ -61,65 +61,32 @@ function Map (rcom) {
 }
 
 Map.prototype.add = function (opts) {
-  if (!opts) opts = {}
-  if (opts.triangle) {
-    this._draw.push(this._regl(Object.assign({
-      frag: `
-        precision highp float;
-        void main () {
-          gl_FragColor = vec4(1,0,0,1);
-        }
-      `,
-      vert: `
-        precision highp float;
-        attribute vec2 position;
-        uniform vec4 bbox;
-        void main () {
-          gl_Position = vec4(
-            (position.x - bbox.x) / (bbox.z - bbox.x) * 2.0 - 1.0,
-            (position.y - bbox.y) / (bbox.w - bbox.y) * 2.0 - 1.0,
-            0, 1);
-        }
-      `,
-      uniforms: Object.assign(opts.triangle.uniforms || {}, {
-        bbox: this._regl.prop('bbox'),
-        offset: this._regl.prop('offset')
-      })
-    }, opts.triangle)))
-  }
-  if (opts.linestrip) {
-    this._draw.push(this._regl({
-      frag: opts.linestrip.frag || `
-        precision highp float;
-        void main () {
-          gl_FragColor = vec4(0,0,0,1);
-        }
-      `,
-      vert: opts.linestrip.vert || `
-        precision highp float;
-        attribute vec2 position, normal;
-        uniform vec4 bbox;
-        void main () {
-          gl_Position = vec4(
-            (position.x - bbox.x) / (bbox.z - bbox.x) * 2.0 - 1.0,
-            (position.y - bbox.y) / (bbox.w - bbox.y) * 2.0 - 1.0,
-            0, 1);
-        }
-      `,
-      uniforms: Object.assign(opts.linestrip.uniforms || {}, {
-        bbox: this._regl.prop('bbox'),
-        offset: this._regl.prop('offset')
-      }),
-      attributes: {
-        position: opts.linestrip.positions,
-        normal: opts.linestrip.normals
-      },
-      elements: opts.linestrip.elements
-    }))
-  }
-  if (opts.point) {
-    // ...
-  }
+  if (!opts) throw new Error('must provide layer information to add()')
+  this._draw.push(this._regl(Object.assign({
+    frag: `
+      precision highp float;
+      void main () {
+        gl_FragColor = vec4(1,0,0,1);
+      }
+    `,
+    vert: `
+      precision highp float;
+      attribute vec2 position;
+      uniform vec4 bbox;
+      uniform vec2 offset;
+      void main () {
+        vec2 p = position + offset;
+        gl_Position = vec4(
+          (p.x - bbox.x) / (bbox.z - bbox.x) * 2.0 - 1.0,
+          (p.y - bbox.y) / (bbox.w - bbox.y) * 2.0 - 1.0,
+          0, 1);
+      }
+    `,
+    uniforms: Object.assign(opts.uniforms || {}, {
+      bbox: this._regl.prop('bbox'),
+      offset: this._regl.prop('offset')
+    })
+  }, opts)))
 }
 
 Map.prototype.draw = function () {

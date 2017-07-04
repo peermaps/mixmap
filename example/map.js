@@ -5,37 +5,35 @@ var glsl = require('glslify')
 var countries = require('./mesh.json')
 var borders = require('./borders.json')
 map.add({
-  triangle: {
-    frag: glsl`
-      precision highp float;
-      #pragma glslify: hsl2rgb = require('glsl-hsl2rgb')
-      varying float vcolor;
-      void main () {
-        gl_FragColor = vec4(hsl2rgb(vcolor/5.0+0.55,0.6,0.8),1);
-      }
-    `,
-    vert: `
-      precision highp float;
-      attribute vec2 position;
-      attribute float color;
-      varying float vcolor;
-      uniform vec4 bbox;
-      uniform vec2 offset;
-      void main () {
-        vcolor = color;
-        vec2 p = position + offset;
-        gl_Position = vec4(
-          (p.x - bbox.x) / (bbox.z - bbox.x) * 2.0 - 1.0,
-          (p.y - bbox.y) / (bbox.w - bbox.y) * 2.0 - 1.0,
-          0, 1);
-      }
-    `,
-    attributes: {
-      position: countries.triangle.positions,
-      color: countries.triangle.colors
-    },
-    elements: countries.triangle.cells
-  }
+  frag: glsl`
+    precision highp float;
+    #pragma glslify: hsl2rgb = require('glsl-hsl2rgb')
+    varying float vcolor;
+    void main () {
+      gl_FragColor = vec4(hsl2rgb(vcolor/5.0+0.55,0.6,0.8),1);
+    }
+  `,
+  vert: `
+    precision highp float;
+    attribute vec2 position;
+    attribute float color;
+    varying float vcolor;
+    uniform vec4 bbox;
+    uniform vec2 offset;
+    void main () {
+      vcolor = color;
+      vec2 p = position + offset;
+      gl_Position = vec4(
+        (p.x - bbox.x) / (bbox.z - bbox.x) * 2.0 - 1.0,
+        (p.y - bbox.y) / (bbox.w - bbox.y) * 2.0 - 1.0,
+        0, 1);
+    }
+  `,
+  attributes: {
+    position: countries.triangle.positions,
+    color: countries.triangle.colors
+  },
+  elements: countries.triangle.cells
 })
 map.draw()
 
