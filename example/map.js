@@ -38,11 +38,13 @@ map.add({
       attribute float color;
       varying float vcolor;
       uniform vec4 bbox;
+      uniform vec2 offset;
       void main () {
         vcolor = color;
+        vec2 p = position + offset;
         gl_Position = vec4(
-          (position.x - bbox.x) / (bbox.z - bbox.x) * 2.0 - 1.0,
-          (position.y - bbox.y) / (bbox.w - bbox.y) * 2.0 - 1.0,
+          (p.x - bbox.x) / (bbox.z - bbox.x) * 2.0 - 1.0,
+          (p.y - bbox.y) / (bbox.w - bbox.y) * 2.0 - 1.0,
           0, 1);
       }
     `,

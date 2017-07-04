@@ -82,7 +82,8 @@ Map.prototype.add = function (opts) {
         }
       `,
       uniforms: Object.assign(opts.triangle.uniforms || {}, {
-        bbox: this._regl.prop('bbox')
+        bbox: this._regl.prop('bbox'),
+        offset: this._regl.prop('offset')
       })
     }, opts.triangle)))
   }
@@ -106,7 +107,8 @@ Map.prototype.add = function (opts) {
         }
       `,
       uniforms: Object.assign(opts.linestrip.uniforms || {}, {
-        bbox: this._regl.prop('bbox')
+        bbox: this._regl.prop('bbox'),
+        offset: this._regl.prop('offset')
       }),
       attributes: {
         position: opts.linestrip.positions,
@@ -122,7 +124,17 @@ Map.prototype.add = function (opts) {
 
 Map.prototype.draw = function () {
   this._regl.clear({ color: [1,1,1,1], depth: true })
-  var props = { bbox: this._bbox }
+  var props
+  var x0 = Math.floor((this._bbox[0]+180)/360)*360
+  var x1 = Math.floor((this._bbox[2]+180)/360)*360
+  if (x0 === x1) {
+    props = { bbox: this._bbox, offset: [x0,0] }
+  } else {
+    props = []
+    for (var x = x0; x <= x1; x+= 360) {
+      props.push({ bbox: this._bbox, offset: [x,0] })
+    }
+  }
   for (var i = 0; i < this._draw.length; i++) {
     this._draw[i](props)
   }
