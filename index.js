@@ -125,25 +125,19 @@ Map.prototype.draw = function () {
 
 Map.prototype._setMouse = function (ev) {
   var self = this
-  self._mousecoords = ev
-  if (self._mouseIdle) return
-  self._mouseIdle = window.requestIdleCallback(function () {
-    ev = self._mousecoords
-    var x = ev.offsetX
-    var y = ev.offsetY
-    var b = ev.buttons & 1
-    if (!self._mouse) {
-      self._mouse = [0,0]
-    } else if (b && self._size) {
-      self.move(
-        (self._mouse[0]-x)/self._size[0],
-        (self._mouse[1]-y)/self._size[1]
-      )
-    }
-    self._mouse[0] = x
-    self._mouse[1] = y
-    self._mouseIdle = null
-  })
+  var x = ev.offsetX
+  var y = ev.offsetY
+  var b = ev.buttons & 1
+  if (!self._mouse) {
+    self._mouse = [0,0]
+  } else if (b && self._size) {
+    self.move(
+      (self._mouse[0]-x)/self._size[0],
+      (self._mouse[1]-y)/self._size[1]
+    )
+  }
+  self._mouse[0] = x
+  self._mouse[1] = y
 }
 
 Map.prototype.move = function (dx,dy) {
@@ -154,12 +148,7 @@ Map.prototype.move = function (dx,dy) {
   self._bbox[1] -= dy*h
   self._bbox[2] += dx*w
   self._bbox[3] -= dy*h
-  if (!self._moveTimeout) {
-    self._moveTimeout = setTimeout(function () {
-      self.draw()
-      self._moveTimeout = null
-    }, 50)
-  }
+  self.draw()
 }
 
 Map.prototype.render = function (props) {
@@ -172,20 +161,16 @@ Map.prototype.render = function (props) {
   this._size[0] = props.width
   this._size[1] = props.height
   return html`<div class=${style} style=${cstyle}>
-    <div class="controls" onmousedown=${mouseDown} onmouseup=${mouseUp}
-    onmouseout=${mouseOut}>
+    <div class="controls">
       <button onclick=${zoomIn}>+</button>
       <button onclick=${zoomOut}>-</button>
     </div>
-    ${this._rcom.render(props)}
+    <div onmouseover=${move} onmouseout=${move}
+    onmousemove=${move} onmousedown=${move} onmouseup=${move}>
+      ${this._rcom.render(props)}
+    </div>
   </div>`
-  function mouseOut (ev) {
-    self._setMouse(ev)
-  }
-  function mouseDown (ev) {
-    self._setMouse(ev)
-  }
-  function mouseUp (ev) {
+  function move (ev) {
     self._setMouse(ev)
   }
   function zoomIn (ev) {

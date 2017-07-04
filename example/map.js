@@ -53,7 +53,9 @@ map.add({
     elements: countries.triangle.cells
   }
 })
-map.draw()
+map._regl.frame(function () {
+  map.draw()
+})
 
 var app = require('choo')()
 var html = require('choo/html')
@@ -63,9 +65,6 @@ app.use(function (state, emitter) {
   window.addEventListener('resize', function () {
     setSize()
     emitter.emit('render')
-  })
-  window.addEventListener('mousemove', function (ev) {
-    mixmap.setMouse(ev)
   })
   function setSize () {
     state.width = Math.min(window.innerWidth-50,600)
