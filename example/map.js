@@ -4,32 +4,14 @@ var glsl = require('glslify')
 
 var countries = require('./mesh.json')
 var borders = require('./borders.json')
-/*
-map.add({
-  triangle: {
-    frag: `
-      precision highp float;
-      void main () {
-        gl_FragColor = vec4(0,1,0,1);
-      }
-    `,
-    attributes: {
-      position: countries.triangle.positions
-    },
-    elements: countries.triangle.cells
-  }
-})
-*/
 map.add({
   triangle: {
     frag: glsl`
       precision highp float;
       #pragma glslify: hsl2rgb = require('glsl-hsl2rgb')
-      #pragma glslify: colormap = require('glsl-colormap/bathymetry')
       varying float vcolor;
       void main () {
-        //gl_FragColor = vec4(hsl2rgb(vcolor/5.0,0.4,0.5),1);
-        gl_FragColor = colormap(vcolor/5.0);
+        gl_FragColor = vec4(hsl2rgb(vcolor/5.0+0.55,0.6,0.8),1);
       }
     `,
     vert: `
