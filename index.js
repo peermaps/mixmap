@@ -8,7 +8,12 @@ var zoomToBbox = require('./lib/zoom-to-bbox.js')
 
 var style = css`
   :host {
-    background-color: black;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
   .controls button {
     min-width: 1.5em;

@@ -53,9 +53,7 @@ map.add({
     elements: countries.triangle.cells
   }
 })
-map._regl.frame(function () {
-  map.draw()
-})
+map.draw()
 
 var app = require('choo')()
 var html = require('choo/html')
@@ -65,6 +63,11 @@ app.use(function (state, emitter) {
   window.addEventListener('resize', function () {
     setSize()
     emitter.emit('render')
+    window.requestAnimationFrame(function () { map.draw() })
+  })
+  window.addEventListener('keydown', function (ev) {
+    if (ev.keyCode === 187) map.setZoom(map.getZoom()+1)
+    else if (ev.keyCode === 189) map.setZoom(map.getZoom()-1)
   })
   function setSize () {
     state.width = Math.min(window.innerWidth-50,600)
