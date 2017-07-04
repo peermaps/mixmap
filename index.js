@@ -25,11 +25,19 @@ var style = css`
 module.exports = MixMap
 
 function MixMap (regl, opts) {
-  if (!(this instanceof MixMap)) return new MixMap(regl, opts)
-  Nano.call(this)
+  var self = this
+  if (!(self instanceof MixMap)) return new MixMap(regl, opts)
+  Nano.call(self)
   if (!opts) opts = {}
-  this._rcom = rcom(regl)
-  this._maps = []
+  self._rcom = rcom(regl)
+  self._maps = []
+  window.addEventListener('resize', function () {
+    window.requestAnimationFrame(function () {
+      for (var i = 0; i < self._maps.length; i++) {
+        self._maps[i].draw()
+      }
+    })
+  })
 }
 MixMap.prototype = Object.create(Nano.prototype)
 
@@ -38,12 +46,6 @@ MixMap.prototype._update = function () { return false }
 MixMap.prototype._render = function (props) {
   return this._rcom.render(props)
 }
-MixMap.prototype.setMouse = function (ev) {
-  for (var i = 0; i < this._maps.length; i++) {
-    this._maps[i]._setMouse(ev)
-  }
-}
-
 MixMap.prototype.create = function (opts) {
   var m = new Map(this._rcom.create(), opts)
   this._maps.push(m)
@@ -155,6 +157,7 @@ Map.prototype.render = function (props) {
   if (!this._size) this._size = [0,0]
   this._size[0] = props.width
   this._size[1] = props.height
+  this.draw()
   return html`<div class=${style} style=${cstyle}>
     <div class="controls">
       <button onclick=${zoomIn}>+</button>
