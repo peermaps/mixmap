@@ -168,6 +168,17 @@ Map.prototype.move = function (dx,dy) {
   self.draw()
 }
 
+Map.prototype._fixbbox = function () {
+  if (this._bbox[1] < -90) {
+    this._bbox[3] += -90 - this._bbox[1]
+    this._bbox[1] = -90
+  }
+  if (this._bbox[3] > 90) {
+    this._bbox[1] += 90 - this._bbox[3]
+    this._bbox[3] = 90
+  }
+}
+
 Map.prototype.render = function (props) {
   var self = this
   var cstyle = `
