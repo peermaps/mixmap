@@ -1,9 +1,10 @@
-var mixmap = require('../')(require('regl'))
+var mixmap = require('../')(require('regl'), {
+  extensions: ['oes_element_index_uint']
+})
 var map = mixmap.create()
 var glsl = require('glslify')
 
-var countries = require('./mesh.json')
-var borders = require('./borders.json')
+var countries1 = require('./countries0.json')
 map.add({
   frag: glsl`
     precision highp float;
@@ -30,10 +31,10 @@ map.add({
     }
   `,
   attributes: {
-    position: countries.triangle.positions,
-    color: countries.triangle.colors
+    position: countries1.triangle.positions,
+    color: countries1.triangle.colors
   },
-  elements: countries.triangle.cells
+  elements: countries1.triangle.cells
 })
 
 var app = require('choo')()
@@ -55,11 +56,23 @@ app.use(function (state, emitter) {
   }
 })
 
+app.route('/cool', function (state, emit) {
+  return html`<body>
+    <a href="/">back</a>
+  </body>`
+})
 app.route('*', function (state, emit) {
   return html`<body>
-    <h1>mixmap</h1>
     ${mixmap.render()}
+    <h1>mixmap</h1>
+    <a href="/cool">cool</a>
+    <div>
+      <button onclick=${zoomIn}>zoom in</button>
+      <button onclick=${zoomOut}>zoom out</button>
+    </div>
     ${map.render(state)}
   </body>`
+  function zoomIn () { map.setZoom(map.getZoom()+1) }
+  function zoomOut () { map.setZoom(map.getZoom()-1) }
 })
 app.mount('body')
