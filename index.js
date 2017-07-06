@@ -1,7 +1,8 @@
 var html = require('bel')
 var rcom = require('regl-component')
 var EventEmitter = require('events').EventEmitter
-var Nano = require('nanocomponent')
+var Nano = require('cache-component')
+var onload = require('on-load')
 var css = require('sheetify')
 var bboxToZoom = require('./lib/bbox-to-zoom.js')
 var zoomToBbox = require('./lib/zoom-to-bbox.js')
@@ -56,6 +57,7 @@ function Map (rcom) {
   this._rcom = rcom
   this._regl = rcom.regl
   this._draw = []
+  this._drawOpts = []
   this._bbox = [-180,-90,180,90]
   this._mouse = null
   this._size = null
@@ -63,7 +65,7 @@ function Map (rcom) {
 
 Map.prototype.add = function (opts) {
   if (!opts) throw new Error('must provide layer information to add()')
-  this._draw.push(this._regl(Object.assign({
+  var drawOpts = Object.assign({
     frag: `
       precision highp float;
       void main () {
@@ -87,7 +89,9 @@ Map.prototype.add = function (opts) {
       bbox: this._regl.prop('bbox'),
       offset: this._regl.prop('offset')
     })
-  }, opts)))
+  }, opts)
+  this._draw.push(this._regl(drawOpts))
+  this._drawOpts.push(drawOpts)
   this.draw()
 }
 
@@ -104,8 +108,10 @@ Map.prototype.draw = function () {
       props.push({ bbox: this._bbox, offset: [x,0] })
     }
   }
-  for (var i = 0; i < this._draw.length; i++) {
-    this._draw[i](props)
+  if (this._draw) {
+    for (var i = 0; i < this._draw.length; i++) {
+      this._draw[i](props)
+    }
   }
 }
 
@@ -158,13 +164,31 @@ Map.prototype.render = function (props) {
   this._size[0] = props.width
   this._size[1] = props.height
   this.draw()
-  return html`<div class=${style} style=${cstyle}>
+  this.element = html`<div class=${style} style=${cstyle}>
     <div onmouseover=${move} onmouseout=${move}
     onmousemove=${move} onmousedown=${move} onmouseup=${move}>
       ${this._rcom.render(props)}
     </div>
   </div>`
+  onload(this.element,
+    function () { self._load() },
+    function () { self._unload() })
+  return this.element
   function move (ev) { self._setMouse(ev) }
+}
+
+Map.prototype._load = function () {
+  if (!this._draw) {
+    this._draw = []
+    for (var i = 0; i < this._drawOpts.length; i++) {
+      this._draw[i] = this._regl(this._drawOpts[i])
+    }
+  }
+  this.draw()
+}
+
+Map.prototype._unload = function () {
+  this._draw = null
 }
 
 Map.prototype.getZoom = function () {
