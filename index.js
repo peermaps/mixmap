@@ -96,6 +96,7 @@ Map.prototype.add = function (opts) {
 }
 
 Map.prototype.draw = function () {
+  this._regl.poll()
   this._regl.clear({ color: [1,1,1,1], depth: true })
   var props
   var x0 = Math.floor((this._bbox[0]+180)/360)*360
