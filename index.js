@@ -52,16 +52,18 @@ MixMap.prototype.create = function (opts) {
   return m
 }
 
-function Map (rcom) {
-  if (!(this instanceof Map)) return new Map(rcom)
+function Map (rcom, opts) {
+  if (!(this instanceof Map)) return new Map(rcom, opts)
+  if (!opts) opts = {}
   this._rcom = rcom
   this._regl = rcom.regl
   this._draw = []
   this._drawOpts = []
-  this._bbox = [-180,-90,180,90]
+  this._viewbox = opts.viewbox || [-180,-90,180,90]
   this._mouse = null
   this._size = null
 }
+Map.prototype = Object.create(EventEmitter.prototype)
 
 Map.prototype.add = function (opts) {
   if (!opts) throw new Error('must provide layer information to add()')
@@ -75,18 +77,18 @@ Map.prototype.add = function (opts) {
     vert: `
       precision highp float;
       attribute vec2 position;
-      uniform vec4 bbox;
+      uniform vec4 viewbox;
       uniform vec2 offset;
       void main () {
         vec2 p = position + offset;
         gl_Position = vec4(
-          (p.x - bbox.x) / (bbox.z - bbox.x) * 2.0 - 1.0,
-          (p.y - bbox.y) / (bbox.w - bbox.y) * 2.0 - 1.0,
+          (p.x - viewbox.x) / (viewbox.z - viewbox.x) * 2.0 - 1.0,
+          (p.y - viewbox.y) / (viewbox.w - viewbox.y) * 2.0 - 1.0,
           0, 1);
       }
     `,
     uniforms: Object.assign(opts.uniforms || {}, {
-      bbox: this._regl.prop('bbox'),
+      viewbox: this._regl.prop('viewbox'),
       offset: this._regl.prop('offset')
     })
   }, opts)
@@ -99,14 +101,14 @@ Map.prototype.draw = function () {
   this._regl.poll()
   this._regl.clear({ color: [1,1,1,1], depth: true })
   var props
-  var x0 = Math.floor((this._bbox[0]+180)/360)*360
-  var x1 = Math.floor((this._bbox[2]+180)/360)*360
+  var x0 = Math.floor((this._viewbox[0]+180)/360)*360
+  var x1 = Math.floor((this._viewbox[2]+180)/360)*360
   if (x0 === x1) {
-    props = { bbox: this._bbox, offset: [x0,0] }
+    props = { viewbox: this._viewbox, offset: [x0,0] }
   } else {
     props = []
     for (var x = x0; x <= x1; x+= 360) {
-      props.push({ bbox: this._bbox, offset: [x,0] })
+      props.push({ viewbox: this._viewbox, offset: [x,0] })
     }
   }
   if (this._draw) {
@@ -135,23 +137,29 @@ Map.prototype._setMouse = function (ev) {
 
 Map.prototype.move = function (dx,dy) {
   var self = this
-  var w = self._bbox[2] - self._bbox[0]
-  var h = self._bbox[3] - self._bbox[1]
-  self._bbox[0] += dx*w
-  self._bbox[1] -= dy*h
-  self._bbox[2] += dx*w
-  self._bbox[3] -= dy*h
+  var w = self._viewbox[2] - self._viewbox[0]
+  var h = self._viewbox[3] - self._viewbox[1]
+  self._viewbox[0] += dx*w
+  self._viewbox[1] -= dy*h
+  self._viewbox[2] += dx*w
+  self._viewbox[3] -= dy*h
   self.draw()
+  self.emit('viewbox', self._viewbox)
+}
+
+Map.prototype.setViewbox = function (viewbox) {
+  self._viewbox = viewbox
+  self.emit('viewbox', self._viewbox)
 }
 
 Map.prototype._fixbbox = function () {
-  if (this._bbox[1] < -90) {
-    this._bbox[3] += -90 - this._bbox[1]
-    this._bbox[1] = -90
+  if (this._viewbox[1] < -90) {
+    this._viewbox[3] += -90 - this._viewbox[1]
+    this._viewbox[1] = -90
   }
-  if (this._bbox[3] > 90) {
-    this._bbox[1] += 90 - this._bbox[3]
-    this._bbox[3] = 90
+  if (this._viewbox[3] > 90) {
+    this._viewbox[1] += 90 - this._viewbox[3]
+    this._viewbox[3] = 90
   }
 }
 
@@ -193,10 +201,10 @@ Map.prototype._unload = function () {
 }
 
 Map.prototype.getZoom = function () {
-  return bboxToZoom(this._bbox)
+  return bboxToZoom(this._viewbox)
 }
 
 Map.prototype.setZoom = function (n) {
-  zoomToBbox(this._bbox, Math.max(Math.min(n,21),1))
+  zoomToBbox(this._viewbox, Math.max(Math.min(n,21),1))
   this.draw()
 }

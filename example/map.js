@@ -3,38 +3,42 @@ var mixmap = require('../')(require('regl'), {
 })
 var map = mixmap.create()
 var glsl = require('glslify')
+var xhr = require('xhr')
 
-var countries1 = require('./countries0.json')
-map.add({
-  frag: glsl`
-    precision highp float;
-    #pragma glslify: hsl2rgb = require('glsl-hsl2rgb')
-    varying float vcolor;
-    void main () {
-      gl_FragColor = vec4(hsl2rgb(vcolor/5.0+0.55,0.6,0.8),1);
-    }
-  `,
-  vert: `
-    precision highp float;
-    attribute vec2 position;
-    attribute float color;
-    varying float vcolor;
-    uniform vec4 bbox;
-    uniform vec2 offset;
-    void main () {
-      vcolor = color;
-      vec2 p = position + offset;
-      gl_Position = vec4(
-        (p.x - bbox.x) / (bbox.z - bbox.x) * 2.0 - 1.0,
-        (p.y - bbox.y) / (bbox.w - bbox.y) * 2.0 - 1.0,
-        0, 1);
-    }
-  `,
-  attributes: {
-    position: countries1.triangle.positions,
-    color: countries1.triangle.colors
-  },
-  elements: countries1.triangle.cells
+//var countries1 = require('./countries0.json')
+xhr('2/2.json', function (err, res, body) {
+  var data = JSON.parse(body)
+  map.add({
+    frag: glsl`
+      precision highp float;
+      #pragma glslify: hsl2rgb = require('glsl-hsl2rgb')
+      varying float vcolor;
+      void main () {
+        gl_FragColor = vec4(hsl2rgb(vcolor/5.0+0.55,0.6,0.8),1);
+      }
+    `,
+    vert: `
+      precision highp float;
+      attribute vec2 position;
+      attribute float color;
+      varying float vcolor;
+      uniform vec4 viewbox;
+      uniform vec2 offset;
+      void main () {
+        vcolor = color;
+        vec2 p = position + offset;
+        gl_Position = vec4(
+          (p.x - viewbox.x) / (viewbox.z - viewbox.x) * 2.0 - 1.0,
+          (p.y - viewbox.y) / (viewbox.w - viewbox.y) * 2.0 - 1.0,
+          0, 1);
+      }
+    `,
+    attributes: {
+      position: data.triangle.positions,
+      color: data.triangle.colors
+    },
+    elements: data.triangle.cells
+  })
 })
 
 var app = require('choo')()
@@ -47,8 +51,11 @@ app.use(function (state, emitter) {
     emitter.emit('render')
   })
   window.addEventListener('keydown', function (ev) {
-    if (ev.keyCode === 187) map.setZoom(map.getZoom()+1)
-    else if (ev.keyCode === 189) map.setZoom(map.getZoom()-1)
+    if (ev.code === 'Equal') {
+      map.setZoom(map.getZoom()+1)
+    } else if (ev.code === 'Minus') {
+      map.setZoom(map.getZoom()-1)
+    }
   })
   function setSize () {
     state.width = Math.min(window.innerWidth-50,600)
