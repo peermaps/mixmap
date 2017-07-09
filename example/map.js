@@ -6,12 +6,28 @@ var glsl = require('glslify')
 var xhr = require('xhr')
 var boxIntersect = require('box-intersect')
 
+var worker = require('webworkify')
+var w = worker(require('../lib/worker.js'))
+var RPC = require('frame-rpc')
+var rpc = new RPC(w,w,'*')
+
 xhr('2/meta.json', function (err, res, body) {
   var meta = JSON.parse(body)
   var keys = Object.keys(meta)
   var boxes = keys.map(function (key) { return meta[key] })
   var tiles = {}
-  map.on('viewbox', function (bbox) {
+  map.on('viewbox', onidlebbox)
+  onidlebbox(map.viewbox)
+  var idle = null, lastbbox = null
+  function onidlebbox (bbox) {
+    lastbbox = bbox
+    if (idle) return
+    idle = window.requestIdleCallback(function () {
+      idle = null
+      onbbox(lastbbox)
+    })
+  }
+  function onbbox (bbox) {
     var box = []
     var x0 = Math.floor((bbox[0]+180)/360)*360
     var x1 = Math.floor((bbox[2]+180)/360)*360
@@ -25,7 +41,12 @@ xhr('2/meta.json', function (err, res, body) {
       if (tiles[file]) return
       tiles[file] = true
       xhr(file, function (err, res, body) {
-        addTile(file, JSON.parse(body))
+        rpc.call('json.parse', body, function (err, data) {
+          if (err) return console.error(err)
+          window.requestIdleCallback(function () {
+            addTile(file, data)
+          })
+        })
       })
     })
     Object.keys(tiles).forEach(function (key) {
@@ -34,7 +55,7 @@ xhr('2/meta.json', function (err, res, body) {
         removeTile(key)
       }
     })
-  })
+  }
 })
 
 function removeTile (key) {

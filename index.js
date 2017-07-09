@@ -60,7 +60,7 @@ function Map (rcom, opts) {
   this._draw = []
   this._drawOpts = []
   this._drawNames = []
-  this._viewbox = opts.viewbox || [-180,-90,180,90]
+  this.viewbox = opts.viewbox || [-180,-90,180,90]
   this._mouse = null
   this._size = null
 }
@@ -112,14 +112,14 @@ Map.prototype.draw = function () {
   this._regl.poll()
   this._regl.clear({ color: [1,1,1,1], depth: true })
   var props
-  var x0 = Math.floor((this._viewbox[0]+180)/360)*360
-  var x1 = Math.floor((this._viewbox[2]+180)/360)*360
+  var x0 = Math.floor((this.viewbox[0]+180)/360)*360
+  var x1 = Math.floor((this.viewbox[2]+180)/360)*360
   if (x0 === x1) {
-    props = { viewbox: this._viewbox, offset: [x0,0] }
+    props = { viewbox: this.viewbox, offset: [x0,0] }
   } else {
     props = []
     for (var x = x0; x <= x1; x+= 360) {
-      props.push({ viewbox: this._viewbox, offset: [x,0] })
+      props.push({ viewbox: this.viewbox, offset: [x,0] })
     }
   }
   if (this._draw) {
@@ -148,29 +148,29 @@ Map.prototype._setMouse = function (ev) {
 
 Map.prototype.move = function (dx,dy) {
   var self = this
-  var w = self._viewbox[2] - self._viewbox[0]
-  var h = self._viewbox[3] - self._viewbox[1]
-  self._viewbox[0] += dx*w
-  self._viewbox[1] -= dy*h
-  self._viewbox[2] += dx*w
-  self._viewbox[3] -= dy*h
+  var w = self.viewbox[2] - self.viewbox[0]
+  var h = self.viewbox[3] - self.viewbox[1]
+  self.viewbox[0] += dx*w
+  self.viewbox[1] -= dy*h
+  self.viewbox[2] += dx*w
+  self.viewbox[3] -= dy*h
   self.draw()
-  self.emit('viewbox', self._viewbox)
+  self.emit('viewbox', self.viewbox)
 }
 
 Map.prototype.setViewbox = function (viewbox) {
-  self._viewbox = viewbox
-  self.emit('viewbox', self._viewbox)
+  self.viewbox = viewbox
+  self.emit('viewbox', self.viewbox)
 }
 
 Map.prototype._fixbbox = function () {
-  if (this._viewbox[1] < -90) {
-    this._viewbox[3] += -90 - this._viewbox[1]
-    this._viewbox[1] = -90
+  if (this.viewbox[1] < -90) {
+    this.viewbox[3] += -90 - this.viewbox[1]
+    this.viewbox[1] = -90
   }
-  if (this._viewbox[3] > 90) {
-    this._viewbox[1] += 90 - this._viewbox[3]
-    this._viewbox[3] = 90
+  if (this.viewbox[3] > 90) {
+    this.viewbox[1] += 90 - this.viewbox[3]
+    this.viewbox[3] = 90
   }
 }
 
@@ -212,11 +212,11 @@ Map.prototype._unload = function () {
 }
 
 Map.prototype.getZoom = function () {
-  return bboxToZoom(this._viewbox)
+  return bboxToZoom(this.viewbox)
 }
 
 Map.prototype.setZoom = function (n) {
-  zoomToBbox(this._viewbox, Math.max(Math.min(n,21),1))
+  zoomToBbox(this.viewbox, Math.max(Math.min(n,21),1))
   this.draw()
-  this.emit('viewbox', this._viewbox)
+  this.emit('viewbox', this.viewbox)
 }
