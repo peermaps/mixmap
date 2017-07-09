@@ -59,13 +59,14 @@ function Map (rcom, opts) {
   this._regl = rcom.regl
   this._draw = []
   this._drawOpts = []
+  this._drawNames = []
   this._viewbox = opts.viewbox || [-180,-90,180,90]
   this._mouse = null
   this._size = null
 }
 Map.prototype = Object.create(EventEmitter.prototype)
 
-Map.prototype.add = function (opts) {
+Map.prototype.add = function (key, opts) {
   if (!opts) throw new Error('must provide layer information to add()')
   var drawOpts = Object.assign({
     frag: `
@@ -94,7 +95,17 @@ Map.prototype.add = function (opts) {
   }, opts)
   this._draw.push(this._regl(drawOpts))
   this._drawOpts.push(drawOpts)
+  this._drawNames.push(key)
   this.draw()
+}
+
+Map.prototype.remove = function (key) {
+  var ix = this._drawNames.indexOf(key)
+  if (ix >= 0) {
+    this._draw.splice(ix,1)
+    this._drawOpts.splice(ix,1)
+    this._drawNames.splice(ix,1)
+  }
 }
 
 Map.prototype.draw = function () {
@@ -207,4 +218,5 @@ Map.prototype.getZoom = function () {
 Map.prototype.setZoom = function (n) {
   zoomToBbox(this._viewbox, Math.max(Math.min(n,21),1))
   this.draw()
+  this.emit('viewbox', this._viewbox)
 }
