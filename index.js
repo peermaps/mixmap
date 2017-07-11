@@ -6,6 +6,7 @@ var onload = require('on-load')
 var css = require('sheetify')
 var bboxToZoom = require('./lib/bbox-to-zoom.js')
 var zoomToBbox = require('./lib/zoom-to-bbox.js')
+var boxIntersect = require('box-intersect')
 
 var style = css`
   :host {
@@ -60,11 +61,54 @@ function Map (rcom, opts) {
   this._draw = []
   this._drawOpts = []
   this._drawNames = []
+  this._layers = []
+  this._layerNames = []
+  this._layerTiles = []
   this.viewbox = opts.viewbox || [-180,-90,180,90]
   this._mouse = null
   this._size = null
+  this.on('viewbox', this._onviewbox)
 }
 Map.prototype = Object.create(EventEmitter.prototype)
+
+Map.prototype._onviewbox = function () {
+  var self = this
+  if (self._idle) return
+  self._idle = window.requestIdleCallback(function () {
+    self._idle = null
+    var boxes = []
+    var x0 = Math.floor((self.viewbox[0]+180)/360)*360
+    var x1 = Math.floor((self.viewbox[2]+180)/360)*360
+    for (var x = x0; x <= x1; x += 360) {
+      boxes.push([
+        self.viewbox[0]-x, self.viewbox[1],
+        self.viewbox[2]-x, self.viewbox[3] ])
+    }
+    var zoom = self.getZoom()
+    for (var i = 0; i < self._layers.length; i++) (function (layer,tiles) {
+      layer.viewbox(self.viewbox, zoom, function (err, lboxes) {
+        if (err) return self.emit('error', err)
+        if (!lboxes) lboxes = []
+        var keys = Object.keys(lboxes)
+        var values = keys.map(function (key) { return lboxes[key] })
+        var active = {}
+        boxIntersect(boxes, values, function (j, k) {
+          var key = keys[k]
+          active[key] = true
+          if (tiles[key]) return
+          tiles[key] = true
+          layer.add(key)
+        })
+        Object.keys(tiles).forEach(function (key) {
+          if (tiles[key] && !active[key]) {
+            tiles[key] = false
+            layer.remove(key)
+          }
+        })
+      })
+    })(self._layers[i],self._layerTiles[i])
+  })
+}
 
 Map.prototype.add = function (key, opts) {
   if (!opts) throw new Error('must provide layer information to add()')
@@ -105,6 +149,28 @@ Map.prototype.remove = function (key) {
     this._draw.splice(ix,1)
     this._drawOpts.splice(ix,1)
     this._drawNames.splice(ix,1)
+  }
+}
+
+Map.prototype.addLayer = function (name, opts) {
+  var self = this
+  self._layers.push(opts)
+  self._layerNames.push(name)
+  self._layerTiles.push({})
+  if (!self._layerIdle) {
+    self._layerIdle = window.requestIdleCallback(function () {
+      self._layerIdle = null
+      self._onviewbox()
+    })
+  }
+}
+
+Map.prototype.removeLayer = function (name, opts) {
+  var ix = this._layerNames.indexOf(name)
+  if (ix >= 0) {
+    this._layers.splice(ix,1)
+    this._layerNames.splice(ix,1)
+    this._layerTiles.splice(ix,1)
   }
 }
 

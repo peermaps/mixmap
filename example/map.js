@@ -4,66 +4,33 @@ var mixmap = require('../')(require('regl'), {
 var map = mixmap.create()
 var glsl = require('glslify')
 var xhr = require('xhr')
-var boxIntersect = require('box-intersect')
 
-var worker = require('webworkify')
-var w = worker(require('../lib/worker.js'))
-var RPC = require('frame-rpc')
-var rpc = new RPC(w,w,'*')
-
-xhr('2/meta.json', function (err, res, body) {
-  var meta = JSON.parse(body)
-  var keys = Object.keys(meta)
-  var boxes = keys.map(function (key) { return meta[key] })
-  var tiles = {}
-  map.on('viewbox', onidlebbox)
-  onidlebbox(map.viewbox)
-  var idle = null, lastbbox = null
-  function onidlebbox (bbox) {
-    lastbbox = bbox
-    if (idle) return
-    idle = window.requestIdleCallback(function () {
-      idle = null
-      onbbox(lastbbox)
-    })
-  }
-  function onbbox (bbox) {
-    var box = []
-    var x0 = Math.floor((bbox[0]+180)/360)*360
-    var x1 = Math.floor((bbox[2]+180)/360)*360
-    for (var x = x0; x <= x1; x += 360) {
-      box.push([ bbox[0]-x, bbox[1], bbox[2]-x, bbox[3] ])
-    }
-    var active = {}
-    boxIntersect(box, boxes, function (i,j) {
-      var file = '2/' + keys[j] + '.json'
-      active[file] = true
-      if (tiles[file]) return
-      tiles[file] = true
-      xhr(file, function (err, res, body) {
-        rpc.call('json.parse', body, function (err, data) {
-          if (err) return console.error(err)
-          window.requestIdleCallback(function () {
-            addTile(file, data)
-          })
+var levels = { 0: [0,2], 1: [3,4], 2: [5,Infinity] }
+Object.keys(levels).forEach(function (level) {
+  var zmin = levels[level][0], zmax = levels[level][1]
+  xhr(level + '/meta.json', function (err, res, body) {
+    var viewboxes = JSON.parse(body)
+    map.addLayer('countries-'+level, {
+      viewbox: function (bbox, zoom, cb) {
+        if (zmin <= zoom && zoom <= zmax) cb(null, viewboxes)
+        else cb(null, [])
+      },
+      add: function (key) {
+        console.log('ADD',level,key)
+        xhr(level + '/' + key + '.json', function (err, res, body) {
+          var data = JSON.parse(body)
+          addTile(level+'/'+key, data)
         })
-      })
-    })
-    Object.keys(tiles).forEach(function (key) {
-      if (tiles[key] && !active[key]) {
-        tiles[key] = false
-        removeTile(key)
+      },
+      remove: function (key) {
+        console.log('REMOVE',level,key)
+        map.remove(level+'/'+key)
       }
     })
-  }
+  })
 })
 
-function removeTile (key) {
-  console.log('REMOVE',key)
-  map.remove(key)
-}
 function addTile (key, data) {
-  console.log('ADD',key)
   map.add(key, {
     frag: glsl`
       precision highp float;
