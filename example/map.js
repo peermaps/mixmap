@@ -5,21 +5,22 @@ var map = mixmap.create()
 var glsl = require('glslify')
 var xhr = require('xhr')
 
-var levels = { 0: [0,2], 1: [3,4], 2: [5,Infinity] }
+var levels = { 0: 0, 1: 3, 2: 5 }
 Object.keys(levels).forEach(function (level) {
-  var zmin = levels[level][0], zmax = levels[level][1]
+  var zmin = levels[level]
   xhr(level + '/meta.json', function (err, res, body) {
     var viewboxes = JSON.parse(body)
     map.addLayer('countries-'+level, {
       viewbox: function (bbox, zoom, cb) {
-        if (zmin <= zoom && zoom <= zmax) cb(null, viewboxes)
+        console.log('zoom=',zoom)
+        if (zmin <= zoom) cb(null, viewboxes)
         else cb(null, [])
       },
       add: function (key) {
         console.log('ADD',level,key)
         xhr(level + '/' + key + '.json', function (err, res, body) {
           var data = JSON.parse(body)
-          addTile(level+'/'+key, data)
+          addTile(level+'/'+key, Number(level), data)
         })
       },
       remove: function (key) {
@@ -30,7 +31,7 @@ Object.keys(levels).forEach(function (level) {
   })
 })
 
-function addTile (key, data) {
+function addTile (key, zindex, data) {
   map.add(key, {
     frag: glsl`
       precision highp float;
@@ -47,15 +48,19 @@ function addTile (key, data) {
       varying float vcolor;
       uniform vec4 viewbox;
       uniform vec2 offset;
+      uniform float zindex;
       void main () {
         vcolor = color;
         vec2 p = position + offset;
         gl_Position = vec4(
           (p.x - viewbox.x) / (viewbox.z - viewbox.x) * 2.0 - 1.0,
           (p.y - viewbox.y) / (viewbox.w - viewbox.y) * 2.0 - 1.0,
-          0, 1);
+          1.0/(zindex+1.0), 1);
       }
     `,
+    uniforms: {
+      zindex: zindex
+    },
     attributes: {
       position: data.triangle.positions,
       color: data.triangle.colors
