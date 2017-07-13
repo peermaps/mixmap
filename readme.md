@@ -244,9 +244,11 @@ This root element can re-establish itself as needed, so it is safe to use with
 virtual dom and dom-diffing libraries: you can call `.render()` whenever your
 state changes.
 
-## var map = mix.create()
+## var map = mix.create(opts)
 
 Create a new map instance with a scissored rendering context.
+
+* `opts.viewbox` - set the viewbox. default: `[-180,-90,+180,+90]`
 
 ## var element = map.render(opts)
 
