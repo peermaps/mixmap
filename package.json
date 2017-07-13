@@ -2,6 +2,7 @@
   "name": "mixmap",
   "version": "1.0.0",
   "main": "index.js",
+  "description": "interactive webgl mapping library emphasizing direct access to the rendering pipeline",
   "dependencies": {
     "bel": "^5.0.0",
     "cache-component": "^5.1.0",
@@ -11,6 +12,13 @@
   "devDependencies": {
     "regl": "^1.3.0"
   },
+  "keywords": [
+    "maps",
+    "geo",
+    "webgl",
+    "regl",
+    "shaders"
+  ],
   "browserify": {
     "transform": [
       "sheetify/transform"
