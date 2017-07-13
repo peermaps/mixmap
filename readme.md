@@ -2,7 +2,7 @@
 
 interactive webgl maps emphasizing direct access to the rendering pipeline
 
-![](https://substack.neocities.org/mixmap.png)
+![](https://substack.neocities.org/images/mixmap.png)
 
 mixmap provides basic plumbing for webgl cartography and then gets out of your
 way. You have direct control over loading data, mapping geometry to a
