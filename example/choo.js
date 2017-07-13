@@ -55,7 +55,7 @@ var drawTile = map.createDraw({
   }
 })
 
-var manifest = require('./data/manifest.json')
+var manifest = require('./manifest.json')
 map.addLayer({
   viewbox: function (bbox, zoom, cb) {
     zoom = Math.round(zoom)
