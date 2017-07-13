@@ -6,7 +6,6 @@ var resl = require('resl')
 var mix = mixmap(regl, { extensions: ['oes_element_index_uint'] })
 var map = mix.create()
 
-var tiles = require('./data/50m/manifest.json')
 var drawTile = map.createDraw({
   frag: glsl`
     precision highp float;
@@ -20,7 +19,7 @@ var drawTile = map.createDraw({
       float l = mod(id/16.0,1.0)*0.5+0.25;
       vec3 c = hsl2rgb(h,s,l);
       vec4 tc = texture2D(texture,vtcoord);
-      gl_FragColor = vec4(c*(1.0-tc.a)+tc.rgb*tc.a,1);
+      gl_FragColor = vec4(c*(1.0-tc.a)+tc.rgb*tc.a,0.5+tc.a*0.5);
     }
   `,
   vert: `
@@ -28,6 +27,7 @@ var drawTile = map.createDraw({
     attribute vec2 position;
     uniform vec4 viewbox;
     uniform vec2 offset;
+    uniform float zindex;
     attribute vec2 tcoord;
     varying vec2 vtcoord;
     void main () {
@@ -36,28 +36,40 @@ var drawTile = map.createDraw({
       gl_Position = vec4(
         (p.x - viewbox.x) / (viewbox.z - viewbox.x) * 2.0 - 1.0,
         (p.y - viewbox.y) / (viewbox.w - viewbox.y) * 2.0 - 1.0,
-        0.5, 1);
+        1.0/(1.0+zindex), 1);
     }
   `,
   uniforms: {
     id: map.prop('id'),
+    zindex: map.prop('zindex'),
     texture: map.prop('texture')
   },
   attributes: {
     position: map.prop('points'),
     tcoord: [0,1,0,0,1,1,1,0] // sw,se,nw,ne
   },
-  elements: [0,1,2,1,2,3]
+  elements: [0,1,2,1,2,3],
+  blend: {
+    enable: true,
+    func: { src: 'src alpha', dst: 'one minus src alpha' }
+  }
 })
 
+var manifest = require('./data/manifest.json')
 map.addLayer({
   viewbox: function (bbox, zoom, cb) {
-    cb(null, tiles)
+    zoom = Math.round(zoom)
+    if (zoom < 2) cb(null, manifest.level0)
+    else if (zoom < 4) cb(null, manifest.level1)
+    else cb(null, manifest.level2)
   },
   add: function (key, bbox) {
-    var file = '50m/' + bbox.join('x') + '.jpg'
+    var level = key.split('/')[0]
+    var file = level + '/' + bbox.join('x') + '.jpg'
     var prop = {
-      id: Number(key),
+      id: Number(key.split('/')[1]),
+      key: key,
+      zindex: 2 + Number(/(\d+)$/.exec(level)[1]),
       texture: map.regl.texture(),
       points: [
         bbox[0], bbox[1], // sw
@@ -71,60 +83,65 @@ map.addLayer({
     resl({
       manifest: { tile: { type: 'image', src: file } },
       onDone: function (assets) {
-        window.requestIdleCallback(function () {
-          prop.texture = map.regl.texture(assets.tile)
-          map.draw()
-        })
+        prop.texture = map.regl.texture(assets.tile)
+        map.draw()
       }
     })
   },
   remove: function (key, bbox) {
-    var id = Number(key)
     drawTile.props = drawTile.props.filter(function (p) {
-      return p.id !== id
+      return p.key !== key
     })
   }
 })
 
-var app = require('choo')()
-var html = require('choo/html')
-
-app.use(function (state, emitter) {
-  setSize()
-  window.addEventListener('resize', function () {
-    setSize()
-    emitter.emit('render')
-  })
-  window.addEventListener('keydown', function (ev) {
-    if (ev.code === 'Equal') {
-      map.setZoom(map.getZoom()+1)
-    } else if (ev.code === 'Minus') {
-      map.setZoom(map.getZoom()-1)
+var drawCities = map.createDraw({
+  frag: `
+    precision highp float;
+    void main () {
+      gl_FragColor = vec4(1,0,0,1);
     }
-  })
-  function setSize () {
-    state.width = Math.min(window.innerWidth-50,600)
-    state.height = Math.min(window.innerHeight-50,400)
+  `,
+  vert: `
+    precision highp float;
+    attribute vec3 position;
+    uniform vec4 viewbox;
+    uniform vec2 offset;
+    uniform float zoom;
+    void main () {
+      vec2 p = position.xy + offset;
+      gl_PointSize = pow(max(1000.0,position.z),0.25)*pow(zoom,2.0)*0.01;
+      gl_Position = vec4(
+        (p.x - viewbox.x) / (viewbox.z - viewbox.x) * 2.0 - 1.0,
+        (p.y - viewbox.y) / (viewbox.w - viewbox.y) * 2.0 - 1.0,
+        0, 1);
+    }
+  `,
+  primitive: 'points',
+  attributes: {
+    position: map.prop('position')
+  },
+  count: map.prop('count')
+})
+resl({
+  manifest: {
+    cities: { type: 'text', src: 'cities1000.json', parser: JSON.parse }
+  },
+  onDone: function (assets) {
+    drawCities.props.push({
+      position: assets.cities,
+      count: assets.cities.length
+    })
   }
 })
 
-app.route('/cool', function (state, emit) {
-  return html`<body>
-    <a href="/">back</a>
-  </body>`
+window.addEventListener('keydown', function (ev) {
+  if (ev.code === 'Equal') {
+    map.setZoom(Math.min(6,Math.round(map.getZoom()+1)))
+  } else if (ev.code === 'Minus') {
+    map.setZoom(map.getZoom()-1)
+  }
 })
-app.route('*', function (state, emit) {
-  return html`<body>
-    ${mix.render()}
-    <h1>mixmap ${state.now}</h1>
-    <a href="/cool">cool</a>
-    <div>
-      <button onclick=${zoomIn}>zoom in</button>
-      <button onclick=${zoomOut}>zoom out</button>
-    </div>
-    ${map.render(state)}
-  </body>`
-  function zoomIn () { map.setZoom(map.getZoom()+1) }
-  function zoomOut () { map.setZoom(map.getZoom()-1) }
-})
-app.mount('body')
+
+document.body.appendChild(mix.render())
+document.body.appendChild(map.render({ width: 600, height: 400 }))
