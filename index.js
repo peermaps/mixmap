@@ -1,5 +1,6 @@
 var rcom = require('regl-component')
 var Nano = require('cache-component')
+var Map = require('./lib/map.js')
 
 module.exports = MixMap
 
