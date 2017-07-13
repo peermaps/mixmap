@@ -56,24 +56,6 @@ var drawTile = map.createDraw({
 })
 
 var manifest = require('./manifest.json')
-var loadQueue = []
-function load (file, prop) {
-  loadQueue.push(function () {
-    resl({
-      manifest: { tile: { type: 'image', src: file } },
-      onDone: function (assets) {
-        prop.texture = map.regl.texture(assets.tile)
-        map.draw()
-        window.requestIdleCallback(next)
-      }
-    })
-  })
-  if (loadQueue.length === 1) next()
-  function next () {
-    if (loadQueue.length > 0) loadQueue.shift()()
-  }
-}
-
 map.addLayer({
   viewbox: function (bbox, zoom, cb) {
     zoom = Math.round(zoom)
@@ -98,7 +80,13 @@ map.addLayer({
     }
     drawTile.props.push(prop)
     map.draw()
-    load(file, prop)
+    resl({
+      manifest: { tile: { type: 'image', src: file } },
+      onDone: function (assets) {
+        prop.texture = map.regl.texture(assets.tile)
+        map.draw()
+      }
+    })
   },
   remove: function (key, bbox) {
     drawTile.props = drawTile.props.filter(function (p) {
