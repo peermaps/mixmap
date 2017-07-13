@@ -96,10 +96,16 @@ map.addLayer({
 })
 
 var drawCities = map.createDraw({
-  frag: `
+  frag: glsl`
     precision highp float;
+    #pragma glslify: hsl2rgb = require('glsl-hsl2rgb')
+    varying float population;
     void main () {
-      gl_FragColor = vec4(1,0,0,1);
+      if (length(gl_PointCoord.xy-0.5) > 0.5) discard;
+      vec3 c = hsl2rgb(
+        0.0, pow(population/1000.0,0.065)-1.0, 0.5
+      );
+      gl_FragColor = vec4(c,1);
     }
   `,
   vert: `
@@ -108,13 +114,16 @@ var drawCities = map.createDraw({
     uniform vec4 viewbox;
     uniform vec2 offset;
     uniform float zoom;
+    varying float population;
     void main () {
       vec2 p = position.xy + offset;
-      gl_PointSize = pow(max(1000.0,position.z),0.25)*pow(zoom,2.0)*0.01;
+      population = max(1000.0,position.z);
+      float z = 1.0-pow(population/1000.0,0.065);
+      gl_PointSize = pow(population,0.4)*pow(zoom,1.2)*0.01;
       gl_Position = vec4(
         (p.x - viewbox.x) / (viewbox.z - viewbox.x) * 2.0 - 1.0,
         (p.y - viewbox.y) / (viewbox.w - viewbox.y) * 2.0 - 1.0,
-        0, 1);
+        z, 1);
     }
   `,
   primitive: 'points',
