@@ -43,11 +43,36 @@ and many parts are not as optimized as they ought to be.
 # example
 
 This demo uses 3 levels of tiles from [10m-ne2][]
-and renders the population data from cities1000 over top.
-
+and renders the population data from [cities1000][] over top.
 There are 138398 cities with over 1000 people, which for webgl is no big deal.
 
+To download the public domain tiles for yourself there are many options,
+using [ipfs][], [dat][], or http mirrors:
+
+* `ipfs get -o ne2srw /ipfs/QmV5PLazMsBk8bRhRAyDhNuJt9N19cjayUSDvw8DKxSmFz`
+* `dat clone dat://db9c54fd4775da34109c9afd366cac5d3dff26c6a3902fc9c9c454193b543cbb ne2srw`
+* https://ipfs.io/ipfs/QmV5PLazMsBk8bRhRAyDhNuJt9N19cjayUSDvw8DKxSmFz
+* https://ne2srw-tiles-substack.hashbase.io/
+
+To get the cities1000 data:
+
+* `ipfs get -o cities1000.json /ipfs/QmaWnPUwrd4DjG2zsGMrjgttqGHcTJrEBCPvM47PLSLZ9A`
+* `dat clone dat://ee15f68b43230825cf9a7c8e9f61a77df5bdceeccdb9ea67e4aac23dfd8e5b80 cities1000 && mv cities1000/cities1000.json .`
+* https://ipfs.io/ipfs/QmaWnPUwrd4DjG2zsGMrjgttqGHcTJrEBCPvM47PLSLZ9A
+* https://cities1000-lon-lat-elev-substack.hashbase.io/
+
+To run the demo, you can use [budo][]:
+
+```
+$ budo map.js
+```
+
+[cities1000]: http://download.geonames.org/export/dump/cities1000.zip
 [10m-ne2]: http://www.naturalearthdata.com/downloads/10m-natural-earth-2/10m-natural-earth-ii-with-shaded-relief-and-water/
+[ipfs]: https://ipfs.io
+[dat]: https://datproject.org/
+[budo]: https://npmjs.com/package/budo
+[glslify]: https://npmjs.com/package/glslify
 
 ``` js
 var mixmap = require('mixmap')
