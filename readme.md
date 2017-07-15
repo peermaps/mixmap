@@ -48,8 +48,8 @@ There are 138398 cities with over 1000 people, which for webgl is no big deal.
 
 You can view this demo on:
 
-* https://ipfs.io/ipfs/QmPCNnDWoh7MbPz3vGhj7AiGY2sNotCCLKwxu2r11RLZ7g
-* https://substack.neocities.org/mixmap/demos/ne2swr-cities.html
+* https://ipfs.io/ipfs/QmTTbHTnijEYYBk4UX6SJVbsL1AjWcN52DwS3D3rH172hv
+* https://substack.neocities.org/mixmap/demos/ne2srw-cities.html
 * dat://81e8ab9b6944e5263ff517be5e9c002446a8a881eff74c1df9ad3fbd6d875da2 (open in [beaker browser][])
 
 To download the public domain tiles for yourself there are many options,
