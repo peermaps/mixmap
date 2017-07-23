@@ -288,6 +288,7 @@ state changes.
 Create a new map instance with a scissored rendering context.
 
 * `opts.viewbox` - set the viewbox. default: `[-180,-90,+180,+90]`
+* `opts.backgroundColor` - default: `[1,1,1,1]` (white)
 
 ## var element = map.render(opts)
 
