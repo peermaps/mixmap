@@ -5,6 +5,7 @@
   "description": "interactive webgl mapping library emphasizing direct access to the rendering pipeline",
   "dependencies": {
     "bel": "^5.0.0",
+    "box-intersect": "^1.0.1",
     "cache-component": "^5.1.0",
     "regl-component": "^1.2.4",
     "sheetify": "^6.0.2"
