@@ -316,13 +316,18 @@ functions on the page.
 ## var draw = map.createDraw(opts)
 
 Create a new `draw` instance. `opts` should be the same as to create a draw
-function with `regl(opts)`.
+function with `regl(opts)` plus these additional options:
+
+* `opts.pickFrag` - fragment shader to use for picking
+* `opts.pickVert` - vertex shader to use for picking. defaults to `opts.vert`
 
 The main difference between regl draw functions and mixmap draw objects is that
 in regl, you pass props to your draw function when you are ready to render it,
 but in mixmap, usually the rendering will be triggered by user actions. Because
 of this you've got to store the props you want to use in your draw call in
 the `draw.props` array.
+
+During picking, a context variable `picking` is set to true.
 
 ## draw.props
 
@@ -369,6 +374,26 @@ Move the map by a delta of screen pixels `dx,dy`.
 
 This is useful if you want to move the map based on mouse or touch events
 instead of setting the viewbox manually.
+
+## var data = map.pick(opts)
+
+Read pixels from a framebuffer rendered with picking shaders (`pickFrag` and
+`pickVert`).
+
+* `opts.x` - dom element x coordinate
+* `opts.y` - dom element y coordinate
+* `opts.width` - width in pixels to read. default: 1
+* `opts.height` - height in pixels to read. default: 1
+
+To rig up picking you can do something like this:
+
+``` js
+var element = map.render({ width: 400, height: 300 })
+element.addEventListener('click', function (ev) {
+  var data = map.pick({ x: ev.offsetX, y: ev.offsetY })
+  console.log(data)
+})
+```
 
 # install
 
