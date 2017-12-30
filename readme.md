@@ -289,6 +289,13 @@ Create a new map instance with a scissored rendering context.
 
 * `opts.viewbox` - set the viewbox. default: `[-180,-90,+180,+90]`
 * `opts.backgroundColor` - default: `[1,1,1,1]` (white)
+* `opts.pickfb` - options to create the framebuffer
+
+To do picking with floating point rgba data, do:
+
+```
+pickfb: { colorFormat: 'rgba', colorType: 'float32' }
+```
 
 ## var element = map.render(opts)
 
