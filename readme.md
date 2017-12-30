@@ -390,8 +390,9 @@ To rig up picking you can do something like this:
 ``` js
 var element = map.render({ width: 400, height: 300 })
 element.addEventListener('click', function (ev) {
-  var data = map.pick({ x: ev.offsetX, y: ev.offsetY })
-  console.log(data)
+  map.pick({ x: ev.offsetX, y: ev.offsetY }, function (err, data) {
+    console.log(data)
+  })
 })
 ```
 
