@@ -293,8 +293,19 @@ Create a new map instance with a scissored rendering context.
 
 To do picking with floating point rgba data, do:
 
+``` js
+var map = mix.create({
+  pickfb: { colorFormat: 'rgba', colorType: 'float32' }
+})
 ```
-pickfb: { colorFormat: 'rgba', colorType: 'float32' }
+
+and if you use floating point framebuffer data you'll need to enable the
+`oes_texture_float` extension:
+
+``` js
+var mix = mixmap(regl, {
+  extensions: [ 'oes_element_index_uint', 'oes_texture_float' ]
+})
 ```
 
 ## var element = map.render(opts)
