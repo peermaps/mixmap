@@ -55,21 +55,28 @@ var drawTile = map.createDraw({
   }
 })
 
-var manifest = require('./manifest.json')
+var manifest = require('./ne2srw/tiles.json')
+var tiles = [ {}, {}, {} ]
+manifest.forEach(function (file,id) {
+  var level = Number(file.split('/')[0])
+  var bbox = file.split('/')[1].replace(/\.jpg$/,'').split('x').map(Number)
+  tiles[level][id+'!'+file] = bbox
+})
+
 map.addLayer({
   viewbox: function (bbox, zoom, cb) {
     zoom = Math.round(zoom)
-    if (zoom < 2) cb(null, manifest.level0)
-    else if (zoom < 4) cb(null, manifest.level1)
-    else cb(null, manifest.level2)
+    if (zoom < 2) cb(null, tiles[0])
+    else if (zoom < 4) cb(null, tiles[1])
+    else cb(null, tiles[2])
   },
   add: function (key, bbox) {
-    var level = key.split('/')[0]
-    var file = level + '/' + bbox.join('x') + '.jpg'
+    var file = key.split('!')[1]
+    var level = Number(file.split('/')[0])
     var prop = {
-      id: Number(key.split('/')[1]),
+      id: Number(key.split('!')[0]),
       key: key,
-      zindex: 2 + Number(/(\d+)$/.exec(level)[1]),
+      zindex: 2 + level,
       texture: map.regl.texture(),
       points: [
         bbox[0], bbox[1], // sw
@@ -81,7 +88,7 @@ map.addLayer({
     drawTile.props.push(prop)
     map.draw()
     resl({
-      manifest: { tile: { type: 'image', src: file } },
+      manifest: { tile: { type: 'image', src: 'ne2srw/'+file } },
       onDone: function (assets) {
         prop.texture = map.regl.texture(assets.tile)
         map.draw()
