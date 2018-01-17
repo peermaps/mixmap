@@ -318,6 +318,11 @@ Return an html element to hold a map on the page given:
 
 You can call `.render()` whenever your state changes to get a new element.
 
+## map.resize(width, height)
+
+Resize an already-rendered map. If you are using a virtual DOM or a DOM diffing
+abstraction you can call `.render()` instead.
+
 ## map.regl
 
 Access the map's wrapped regl instance.
