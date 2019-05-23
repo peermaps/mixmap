@@ -9,7 +9,7 @@
     "cache-component": "^5.1.0",
     "defined": "^1.0.0",
     "regl-component": "^1.2.4",
-    "sheetify": "^6.0.2"
+    "sheetify": "^7.3.3"
   },
   "devDependencies": {
     "regl": "^1.3.0"
