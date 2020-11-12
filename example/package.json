@@ -1,5 +1,21 @@
 {
   "browserify": {
-    "transform": [ "glslify" ]
+    "transform": [
+      "glslify"
+    ]
+  },
+  "devDependencies": {
+    "budo": "^11.6.4",
+    "choo": "^7.1.0",
+    "glsl-hsl2rgb": "^1.1.0",
+    "glslify": "^7.1.1",
+    "resl": "^1.0.3"
+  },
+  "scripts": {
+    "choo": "budo choo.js",
+    "map": "budo map.js",
+    "download:ipfs": "npm run download:ipfs:ne2srw && npm run download:ipfs:cities1000",
+    "download:ipfs:ne2srw": "ipfs get -o ne2srw /ipfs/QmV5PLazMsBk8bRhRAyDhNuJt9N19cjayUSDvw8DKxSmFz",
+    "download:ipfs:cities1000": "ipfs get -o cities1000.json /ipfs/QmaWnPUwrd4DjG2zsGMrjgttqGHcTJrEBCPvM47PLSLZ9A"
   }
 }
