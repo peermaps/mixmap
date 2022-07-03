@@ -323,6 +323,8 @@ You can call `.render()` whenever your state changes to get a new element.
 Resize an already-rendered map. If you are using a virtual DOM or a DOM diffing
 abstraction you can call `.render()` instead.
 
+Emits a `'resize', width, height` event on `map`.
+
 ## map.regl
 
 Access the map's wrapped regl instance.
@@ -381,6 +383,10 @@ The viewbox is stored as `map.viewbox` in the form:
 ## map.setViewbox(bbox)
 
 Set a new viewbox as `[west,south,east,north]`.
+
+## map.size
+
+Access the map dimensions in pixels as `[width,height]`.
 
 ## var zoom = map.getZoom()
 
